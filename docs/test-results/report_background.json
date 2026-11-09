@@ -1,0 +1,462 @@
+[
+  {
+    "test": "01 add-on installed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "02 add-on enabled",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "02b panels registered",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "03 camera poll accepts camera",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "03 camera poll rejects mesh",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "03 ortho camera selectable",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "04 start creates session folder",
+    "passed": true,
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_001"
+  },
+  {
+    "test": "04 timer registered",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "04 second start rejected",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "05 first frame captured",
+    "passed": true,
+    "detail": "[(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_001/Frames/Frame_000001.png'))]"
+  },
+  {
+    "test": "render settings restored after capture",
+    "passed": true,
+    "detail": "{}"
+  },
+  {
+    "test": "05 multiple frames",
+    "passed": true,
+    "detail": "3"
+  },
+  {
+    "test": "07 geometry edit visible in frames",
+    "passed": true,
+    "detail": "(0.016528953031623436, 0.052240096501100196)"
+  },
+  {
+    "test": "never captures before interval",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 paused state",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 pause prevents captures",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 elapsed frozen while paused",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 resume continues same session",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 resume waits one interval",
+    "passed": true,
+    "detail": "0.9999636329998793"
+  },
+  {
+    "test": "08 capture after resume continues numbering",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "09 manual capture",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "11 interval change applies live",
+    "passed": true,
+    "detail": "6.980354396999701"
+  },
+  {
+    "test": "10 stop captures final frame",
+    "passed": true,
+    "detail": "7"
+  },
+  {
+    "test": "10 stop sets STOPPED",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "18 timer removed on stop",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "metadata written",
+    "passed": true,
+    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.0.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'test', 'started': '2026-11-09T20:20:50+00:00', 'ended': '2026-11-09T20:20:51+00:00', 'recorded_seconds': 0.47, 'frames': 7, 'pauses': 1, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
+  },
+  {
+    "test": "render settings restored after session",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "camera object untouched",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "capture_now refused after stop",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 PNG 25%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_002/Frames/Frame_000001.png'))], (80, 60))"
+  },
+  {
+    "test": "12/13 PNG 25 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 PNG 50%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_003/Frames/Frame_000001.png'))], (160, 120))"
+  },
+  {
+    "test": "12/13 PNG 50 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 PNG 75%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_004/Frames/Frame_000001.png'))], (240, 180))"
+  },
+  {
+    "test": "12/13 PNG 75 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 PNG 100%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_005/Frames/Frame_000001.png'))], (320, 240))"
+  },
+  {
+    "test": "12/13 PNG 100 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 PNG CUSTOM%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_006/Frames/Frame_000001.png'))], (200, 100))"
+  },
+  {
+    "test": "12/13 PNG CUSTOM restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 JPEG 25%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_007/Frames/Frame_000001.jpg'))], (80, 60))"
+  },
+  {
+    "test": "12/13 JPEG 25 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 JPEG 50%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_008/Frames/Frame_000001.jpg'))], (160, 120))"
+  },
+  {
+    "test": "12/13 JPEG 50 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 JPEG 75%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_009/Frames/Frame_000001.jpg'))], (240, 180))"
+  },
+  {
+    "test": "12/13 JPEG 75 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 JPEG 100%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_010/Frames/Frame_000001.jpg'))], (320, 240))"
+  },
+  {
+    "test": "12/13 JPEG 100 restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "12/13 JPEG CUSTOM%",
+    "passed": true,
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/BG/Session_011/Frames/Frame_000001.jpg'))], (200, 100))"
+  },
+  {
+    "test": "12/13 JPEG CUSTOM restored",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine WORKBENCH captures",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine WORKBENCH used for render, via RecCam",
+    "passed": true,
+    "detail": "('RecCam', 'BLENDER_WORKBENCH')"
+  },
+  {
+    "test": "engine WORKBENCH restores settings",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine EEVEE captures",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine EEVEE used for render, via RecCam",
+    "passed": true,
+    "detail": "('RecCam', 'BLENDER_EEVEE')"
+  },
+  {
+    "test": "engine EEVEE restores settings",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine CYCLES captures",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine CYCLES used for render, via RecCam",
+    "passed": true,
+    "detail": "('RecCam', 'CYCLES')"
+  },
+  {
+    "test": "engine CYCLES restores settings",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine SCENE captures",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "engine SCENE used for render, via RecCam",
+    "passed": true,
+    "detail": "('RecCam', 'BLENDER_EEVEE')"
+  },
+  {
+    "test": "engine SCENE restores settings",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "14 invalid dir rejected: file as folder",
+    "passed": true,
+    "detail": "Cannot write to '/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/not_a_folder/BG': Not a directory"
+  },
+  {
+    "test": "14 invalid dir rejected: unwritable",
+    "passed": true,
+    "detail": "Cannot write to '/proc/bt_nope/BG': No such file or directory"
+  },
+  {
+    "test": "14 invalid dir rejected: relative unsaved",
+    "passed": true,
+    "detail": "Output folder is relative ('//') but the .blend file is not saved yet"
+  },
+  {
+    "test": "no camera rejected",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "15 new session after highest existing",
+    "passed": true,
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/Existing/Session_008"
+  },
+  {
+    "test": "15 previous session preserved",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "20 repeated session gets new folder",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "storage loss pauses with error",
+    "passed": true,
+    "detail": "Output storage unavailable: No such file or directory (recording paused)"
+  },
+  {
+    "test": "stop after storage loss is clean",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "ffmpeg found on PATH",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "16 external ffmpeg video",
+    "passed": true,
+    "detail": "Saved timelapse.mp4"
+  },
+  {
+    "test": "16 frames kept after export",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "16 built-in encoder video, no overwrite",
+    "passed": true,
+    "detail": "Saved timelapse_2.mp4"
+  },
+  {
+    "test": "16 built-in encoder leaves no scene/images",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "16 timelapse.mp4: 12 frames @24 fps h264",
+    "passed": true,
+    "detail": "{'codec_name': 'h264', 'width': 160, 'height': 120, 'r_frame_rate': '24/1', 'nb_read_frames': '12'}"
+  },
+  {
+    "test": "16 timelapse_2.mp4: 12 frames @30 fps h264",
+    "passed": true,
+    "detail": "{'codec_name': 'h264', 'width': 160, 'height': 120, 'r_frame_rate': '30/1', 'nb_read_frames': '12'}"
+  },
+  {
+    "test": "16 gapped sequence encodes (built-in fallback)",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "video with <2 frames refused",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "file load stops session",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "file load removes timer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "19 settings persist in .blend",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "19 .blend not modified by recording",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "19 recording works after reopen",
+    "passed": true,
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/w9/out_bg/Reopen/Session_002"
+  },
+  {
+    "test": "scene rename does not break session",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "camera rename / cleared pointer: same camera keeps recording",
+    "passed": true,
+    "detail": "('', ('RenamedCam', 'BLENDER_WORKBENCH'))"
+  },
+  {
+    "test": "deleted camera reported, no crash",
+    "passed": true,
+    "detail": "Recording camera 'RenamedCam' was deleted"
+  },
+  {
+    "test": "repeated failures auto-pause",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "17 disable stops session",
+    "passed": true,
+    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.0.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'add-on disabled', 'started': '2026-11-09T20:20:57+00:00', 'ended': '2026-11-09T20:20:57+00:00', 'recorded_seconds': 0.02, 'frames': 1, 'pauses': 0, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
+  },
+  {
+    "test": "17/18 no timers left after disable",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "17 UI classes unregistered",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "re-enable works",
+    "passed": true,
+    "detail": ""
+  }
+]
