@@ -1,0 +1,182 @@
+[
+  {
+    "test": "viewport starts in free view",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "camera test capture operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "camera preview thumbnail available",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "start operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "duplicate start blocked by poll",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "06 frames captured while navigating",
+    "passed": true,
+    "detail": "6"
+  },
+  {
+    "test": "06 orbit/pan/zoom never changes captured angle (pixel-identical)",
+    "passed": true,
+    "detail": "0.0"
+  },
+  {
+    "test": "06 viewport not forced into camera view",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "never captures faster than interval (1 s)",
+    "passed": true,
+    "detail": "['0.99', '1.14', '1.13', '1.14', '1.05']"
+  },
+  {
+    "test": "07 edits made in Edit Mode appear in frames",
+    "passed": true,
+    "detail": "0.040915043297019664"
+  },
+  {
+    "test": "07 edit visible while still in Edit Mode",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "undo went past camera selection",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "undo past camera choice keeps recording from the same camera",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "undo/redo during recording keeps capturing",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "captures keep running in Sculpt Mode",
+    "passed": true,
+    "detail": "('RECORDING', '', None, 0.5441030689999025, [0])"
+  },
+  {
+    "test": "pause operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 no captures while paused (3 s)",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 elapsed frozen while paused",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "resume operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "08 captures resume in same session",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "11 interval change to 2 s takes effect",
+    "passed": true,
+    "detail": "2"
+  },
+  {
+    "test": "09 capture-now operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "10 stop operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "18 no captures after stop / timer gone",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "sequential numbering without gaps",
+    "passed": true,
+    "detail": "[20, 21, 22]"
+  },
+  {
+    "test": "render/scene/selection/workspace state preserved",
+    "passed": true,
+    "detail": "{}"
+  },
+  {
+    "test": "viewport keeps the user's navigated view",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": ".blend never saved by add-on",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "generate video operator",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "16 video generated while UI stays live",
+    "passed": true,
+    "detail": "Saved timelapse.mp4"
+  },
+  {
+    "test": "20 second session starts",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "20 new folder for repeat",
+    "passed": true,
+    "detail": "Session_002"
+  },
+  {
+    "test": "17 disabling mid-recording stops captures",
+    "passed": true,
+    "detail": "2"
+  },
+  {
+    "test": "17 session closed with metadata",
+    "passed": true,
+    "detail": "add-on disabled"
+  },
+  {
+    "test": "18 no add-on timer left",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "test": "re-enable after disable",
+    "passed": true,
+    "detail": ""
+  }
+]
