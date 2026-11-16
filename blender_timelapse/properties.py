@@ -117,6 +117,19 @@ class BT_Settings(bpy.types.PropertyGroup):
         description="How long each captured photo stays on screen in the video. Change it and export again any time",
         default=1.0, min=0.01, soft_min=0.04, max=600.0, soft_max=10.0, step=10, precision=2, unit="TIME_ABSOLUTE",
     )
+    use_soundtrack: BoolProperty(name="Soundtrack", description="Add music to the exported video", default=False)
+    soundtrack_path: StringProperty(
+        name="Music", description="Audio file to play under the video (MP3, WAV, OGG, FLAC, M4A...)",
+        subtype="FILE_PATH", default="",
+    )
+    soundtrack_start: FloatProperty(
+        name="Start At", description="Where in the music file playback begins. The music is cut when the video ends",
+        default=0.0, min=0.0, soft_max=600.0, unit="TIME_ABSOLUTE",
+    )
+    soundtrack_fade: FloatProperty(
+        name="Fade Out", description="Fade the music out over the last seconds of the video. 0 cuts it hard",
+        default=2.0, min=0.0, max=30.0, unit="TIME_ABSOLUTE",
+    )
     video_name: StringProperty(name="File Name", default="timelapse", description="Video file name, without extension")
     export_folder: StringProperty(
         name="Session",

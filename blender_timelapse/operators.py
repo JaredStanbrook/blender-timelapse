@@ -190,6 +190,10 @@ def export_problem(settings):
         return "A video is already being generated"
     if count_photos(folder) == 0:
         return "No photos in %s" % folder.name
+    try:
+        video.soundtrack_from(settings)
+    except TimelapseError as ex:
+        return str(ex)
     return None
 
 
@@ -213,7 +217,7 @@ class BT_OT_generate_video(_Base, bpy.types.Operator):
         if prefs.ffmpeg_path and exe is None:
             self.report({"WARNING"}, "FFmpeg path not found; using Blender's encoder")
         video.start(session_dir(settings.export_folder), settings.fps, settings.frames_per_photo,
-                    settings.video_name, exe)
+                    settings.video_name, exe, video.soundtrack_from(settings))
         if video.job.state == "DONE":
             self.report({"INFO"}, video.job.message)
 

@@ -18,6 +18,52 @@ import bpy
 from .utils import TimelapseError, frame_path, list_frames, redraw_viewports, safe_name, unique_path
 
 POLL = 0.5
+AUDIO_EXTENSIONS = (".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".opus", ".aif", ".aiff", ".wma")
+
+_audio_cache = {}
+
+
+class Soundtrack:
+    """Music laid under the video: played from `start` seconds into the file, cut at the video's end."""
+
+    def __init__(self, path, start=0.0, fade=0.0):
+        self.path, self.start, self.fade = Path(path), max(0.0, start), max(0.0, fade)
+
+    def window(self, video_seconds):
+        """(seconds of music actually heard, second at which the fade-out begins)."""
+        heard = max(0.0, min(video_seconds, audio_length(self.path) - self.start))
+        return heard, max(0.0, heard - self.fade)
+
+
+def audio_length(path):
+    """Length of an audio file in seconds, read with Blender's audio library (no datablock is created)."""
+    path = Path(path)
+    try:
+        key = (path, path.stat().st_mtime_ns)
+    except OSError as ex:
+        raise TimelapseError("Soundtrack not found: %s" % path) from ex
+    if key not in _audio_cache:
+        import aud
+        try:
+            sound = aud.Sound(str(path))
+            _audio_cache[key] = sound.length / sound.specs[0]
+        except Exception as ex:  # aud raises plain Exception for unreadable files
+            raise TimelapseError("Can't read soundtrack '%s': %s" % (path.name, ex)) from ex
+    return _audio_cache[key]
+
+
+def soundtrack_from(settings):
+    """The Soundtrack configured in the panel, or None. Raises TimelapseError if it can't be used."""
+    if not settings.use_soundtrack:
+        return None
+    if not settings.soundtrack_path:
+        raise TimelapseError("Choose a music file, or turn the soundtrack off")
+    track = Soundtrack(bpy.path.abspath(settings.soundtrack_path), settings.soundtrack_start,
+                       settings.soundtrack_fade)
+    length = audio_length(track.path)
+    if track.start >= length:
+        raise TimelapseError("Start At is past the end of the track (%.1f s long)" % length)
+    return track
 
 
 class Job:
@@ -61,8 +107,8 @@ def plan(photos, fps, per_photo):
     return total, total / fps
 
 
-def start(session_folder, fps, per_photo, name, ffmpeg_exe):
-    """Encode every photo held for per_photo frames at fps.
+def start(session_folder, fps, per_photo, name, ffmpeg_exe, soundtrack=None):
+    """Encode every photo held for per_photo frames at fps, with optional music.
 
     Reads the photos only; they are never modified. Returns immediately for external
     FFmpeg, blocks for the built-in path.
@@ -81,12 +127,23 @@ def start(session_folder, fps, per_photo, name, ffmpeg_exe):
     job.total = plan(len(frames), fps, per_photo)[0]
     job.output = out
     if ffmpeg_exe and _contiguous(frames):
-        _start_external(ffmpeg_exe, frames, frames_dir, fps, per_photo, out)
+        _start_external(ffmpeg_exe, frames, frames_dir, fps, per_photo, out, soundtrack)
     else:
-        _encode_builtin(frames, fps, per_photo, out)
+        _encode_builtin(frames, fps, per_photo, out, soundtrack)
 
 
-def _start_external(exe, frames, frames_dir, fps, per_photo, out):
+def _audio_args(track, fps):
+    """Extra ffmpeg arguments that lay the soundtrack under the video, cut to the video length."""
+    seconds = job.total / fps
+    heard, fade_at = track.window(seconds)
+    args = ["-ss", "%.3f" % track.start, "-i", str(track.path), "-map", "0:v:0", "-map", "1:a:0",
+            "-c:a", "aac", "-b:a", "192k", "-t", "%.3f" % seconds]
+    if track.fade > 0 and heard > 0:
+        args += ["-af", "afade=t=out:st=%.3f:d=%.3f" % (fade_at, heard - fade_at)]
+    return args
+
+
+def _start_external(exe, frames, frames_dir, fps, per_photo, out, soundtrack=None):
     first = frames[0][0]
     pattern = str(frame_path(frames_dir, 0, frames[0][1].suffix[1:])).replace("000000", "%06d")
     job.progress_file = out.with_suffix(".progress.txt")
@@ -95,6 +152,7 @@ def _start_external(exe, frames, frames_dir, fps, per_photo, out):
         exe, "-hide_banner", "-nostdin", "-n",
         # Photos are read at fps/per_photo and resampled to fps, so each is repeated per_photo times.
         "-framerate", "%d/%d" % (fps, per_photo), "-start_number", str(first), "-i", pattern,
+        *(_audio_args(soundtrack, fps) if soundtrack else []),
         "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=%d,format=yuv420p" % fps, "-r", str(fps),
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-movflags", "+faststart",
         "-progress", str(job.progress_file), "-nostats",
@@ -192,8 +250,29 @@ def _image_size(path):
         bpy.data.images.remove(img)
 
 
-def _encode_builtin(frames, fps, per_photo, out):
+def _add_builtin_audio(scene, track, fps):
+    """Sound strip shifted so frame 1 plays `start` seconds into the file; volume fades to 0 at the end."""
+    heard, fade_at = track.window(job.total / fps)
+    if heard <= 0:
+        return
+    r = scene.render
+    r.ffmpeg.audio_codec = "AAC"
+    r.ffmpeg.audio_bitrate = 192
+    r.ffmpeg.audio_channels = "STEREO"
+    r.ffmpeg.audio_mixrate = 48000
+    strip = scene.sequence_editor.strips.new_sound("Soundtrack", str(track.path), 2, 1 - round(track.start * fps))
+    end = 1 + round(heard * fps)  # never past the video or the music
+    strip.frame_final_start, strip.frame_final_end = 1, end
+    if track.fade > 0:
+        strip.volume = 1.0
+        strip.keyframe_insert("volume", frame=1 + round(fade_at * fps))
+        strip.volume = 0.0
+        strip.keyframe_insert("volume", frame=end)
+
+
+def _encode_builtin(frames, fps, per_photo, out, soundtrack=None):
     width, height = _image_size(frames[0][1])
+    sounds_before, actions_before = set(bpy.data.sounds), set(bpy.data.actions)
     scene = bpy.data.scenes.new("Blender Timelapse Encode")
     try:
         r = scene.render
@@ -224,6 +303,8 @@ def _encode_builtin(frames, fps, per_photo, out):
             for _ in range(per_photo):
                 strip.elements.append(path.name)
         strip.frame_final_duration = job.total
+        if soundtrack:
+            _add_builtin_audio(scene, soundtrack, fps)
 
         job.state, job.message = "RUNNING", "Encoding with Blender..."
         with bpy.context.temp_override(scene=scene):
@@ -233,6 +314,11 @@ def _encode_builtin(frames, fps, per_photo, out):
         raise TimelapseError(job.message) from ex
     finally:
         bpy.data.scenes.remove(scene)
+        # The sound strip and fade keyframes create datablocks; never leave them in the user's file.
+        for sound in set(bpy.data.sounds) - sounds_before:
+            bpy.data.sounds.remove(sound)
+        for action in set(bpy.data.actions) - actions_before:
+            bpy.data.actions.remove(action)
 
     if not out.is_file():
         job.state, job.message = "FAILED", "Encoder produced no file"

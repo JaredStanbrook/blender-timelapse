@@ -96,6 +96,14 @@ Each photo is repeated for **Per Photo × FPS** frames (rounded to whole frames,
 - `<File Name>.mp4` becomes `_2`, `_3` and so on, so earlier videos are kept.
 - The captured photos are only ever read, never modified, moved or deleted, so you never need to recapture.
 
+**Soundtrack.** Tick **Soundtrack** in Export and pick a music file (MP3, WAV, OGG, FLAC, M4A, …).
+
+- **Start At** chooses where in the music file playback begins, so you can skip an intro.
+- The music always stops when the video ends. If the track runs out first, the rest of the video is silent, and the panel warns you before you export.
+- **Fade Out** (default 2 s, 0 for a hard cut) fades the music out over the end of whatever part plays.
+- The panel shows the track length and exactly which part will be heard, for example "Plays 0:30 – 1:30".
+- The music file is only read, never changed. Each export is a new file, so you can try different tracks or start points freely.
+
 **Re-exporting an older session.** The **Session** row in Export points to the session you recorded most recently. Its ⌄ menu lists every session in the current project with its photo count, and **Browse…** opens any session folder, or its `Frames` folder, from anywhere. You can export an earlier session even while a new one is recording; only the session currently being recorded can't be exported.
 
 - If an `ffmpeg` executable is on your PATH, or set in **Preferences › Add-ons › Blender Timelapse › FFmpeg Executable**, it runs as a separate process. Blender stays responsive and a progress bar is shown.

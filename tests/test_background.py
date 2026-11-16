@@ -404,6 +404,96 @@ def t_hold_exact_frames():
     check("a single photo exports as a still video (2 s)", probe(bt.video.job.output)[0] == 60)
 
 
+def loudness(path, start=None, duration=None):
+    """Mean volume (dB) of a file's audio, optionally of a time window. -91 means silence / no audio."""
+    import re
+    import subprocess
+    cmd = ["ffmpeg", "-hide_banner", "-nostats"]
+    if start is not None:
+        cmd += ["-ss", str(start), "-t", str(duration)]
+    cmd += ["-i", str(path), "-vn", "-af", "volumedetect", "-f", "null", "-"]
+    m = re.search(r"mean_volume: (-?[\d.]+) dB", subprocess.run(cmd, capture_output=True, text=True).stderr)
+    return float(m.group(1)) if m else -91.0
+
+
+def stream_seconds(path, kind):
+    import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", kind + ":0", "-show_entries",
+                        "stream=duration", "-of", "csv=p=0", str(path)], capture_output=True, text=True)
+    return float(r.stdout.strip() or 0)
+
+
+def t_soundtrack():
+    """Music under the video: chosen start point, cut to the video length, faded out, both encoders."""
+    import subprocess
+    folder = OUT / "Music" / "Session_001"
+    (folder / "Frames").mkdir(parents=True)
+    for i in range(1, 7):
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x%02x%02x%02x:s=64x48"
+                        % ((i * 35,) * 3), "-frames:v", "1", str(folder / "Frames" / ("Frame_%06d.png" % i))],
+                       check=True)
+    music = OUT / "music.mp3"  # 5 s of silence, then 20 s of loud tone: position in the file is audible
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo:d=5",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=20:sample_rate=44100",
+                    "-filter_complex", "[1]volume=0.8,aformat=channel_layouts=stereo[t];[0][t]concat=n=2:v=0:a=1",
+                    str(music)], check=True)
+    bt.video._audio_cache.clear()
+    check("track length read without datablocks", abs(bt.video.audio_length(music) - 25.0) < 0.1
+          and not any(snd.filepath.endswith("music.mp3") for snd in bpy.data.sounds))
+    exe = bt.video.find_ffmpeg("")
+    sounds, actions = len(bpy.data.sounds), len(bpy.data.actions)
+    for label, ffmpeg in (("ffmpeg", exe), ("built-in", None)):
+        def run(name, start, fade):
+            bt.video.start(folder, 30, 30, "%s_%s" % (label, name), ffmpeg, bt.video.Soundtrack(music, start, fade))
+            job = bt.video.job
+            if job.proc:
+                job.proc.wait(120)
+                bt.video._poll()
+            return job.output if job.state == "DONE" else None
+
+        # 6 photos x 1 s = 6 s video. Start at 5 s -> loud tone throughout, cut at 6 s.
+        out = run("from5", 5.0, 0.0)
+        check("%s: video still 180 frames with music" % label, out and probe(out)[0] == 180, out)
+        check("%s: music cut to video length (6 s)" % label, abs(stream_seconds(out, "a") - 6.0) < 0.1,
+              stream_seconds(out, "a"))
+        check("%s: plays from the chosen point (5 s -> tone)" % label, loudness(out) > -35, loudness(out))
+        out0 = run("from0", 0.0, 0.0)
+        check("%s: start 0 plays the silent intro first" % label,
+              loudness(out0, 0, 4.5) < -60 and loudness(out0, 5.2, 0.6) > -35,
+              (loudness(out0, 0, 4.5), loudness(out0, 5.2, 0.6)))
+        outf = run("fade", 5.0, 2.0)
+        check("%s: fade out at the end" % label,
+              loudness(outf, 1, 2) > -35 and loudness(outf, 5.6, 0.35) < loudness(outf, 1, 2) - 12,
+              (loudness(outf, 1, 2), loudness(outf, 5.6, 0.35)))
+        outs = run("short", 22.0, 0.0)  # only 3 s of music left for a 6 s video
+        check("%s: short track ends early, video keeps full length" % label,
+              probe(outs)[0] == 180 and 2.8 < stream_seconds(outs, "a") <= 3.2 or
+              (probe(outs)[0] == 180 and loudness(outs, 3.5, 2) < -60),
+              (probe(outs)[0], stream_seconds(outs, "a"), loudness(outs, 3.5, 2)))
+    check("built-in encoder leaves no sound/action datablocks",
+          (len(bpy.data.sounds), len(bpy.data.actions)) == (sounds, actions))
+
+    # panel settings + operator path
+    scene, cube, cam, st = setup(project="MusicUI")
+    st.export_folder = str(folder)
+    st.use_soundtrack = True
+    check("soundtrack on without a file blocks export", not bpy.ops.blender_timelapse.generate_video.poll())
+    st.soundtrack_path = str(OUT / "missing.mp3")
+    check("missing music file blocks export", not bpy.ops.blender_timelapse.generate_video.poll())
+    st.soundtrack_path = str(music)
+    st.soundtrack_start = 30.0
+    check("Start At past the end blocks export", not bpy.ops.blender_timelapse.generate_video.poll())
+    st.soundtrack_start, st.photo_duration, st.fps_preset, st.video_name = 5.0, 0.5, "24", "ui_music"
+    r, job = export(st)
+    check("operator exports with music from panel settings", r == {"FINISHED"} and job.state == "DONE"
+          and probe(job.output)[0] == 72 and abs(stream_seconds(job.output, "a") - 3.0) < 0.1, job.message)
+    st.use_soundtrack = False
+    st.video_name = "ui_silent"
+    r, job = export(st)
+    check("turning the soundtrack off exports silent video", stream_seconds(job.output, "a") == 0
+          and loudness(job.output) == -91.0)
+
+
 def t_manual_mode():
     scene, cube, cam, st = setup(project="Manual", interval_preset="MANUAL", capture_on_stop=False)
     check("interval None in manual mode", st.interval is None)

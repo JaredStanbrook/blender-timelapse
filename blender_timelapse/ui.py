@@ -232,6 +232,37 @@ class BT_MT_sessions(bpy.types.Menu):
         layout.operator("blender_timelapse.open_session", text="Browse...", icon="FILEBROWSER").directory = ""
 
 
+def _draw_soundtrack(layout, settings, video_seconds):
+    header, body = layout.panel("BT_soundtrack", default_closed=not settings.use_soundtrack)
+    header.prop(settings, "use_soundtrack", text="Soundtrack")
+    if body is None:
+        return
+    body.active = settings.use_soundtrack
+    col = body.column()
+    col.use_property_split = True
+    col.use_property_decorate = False
+    col.prop(settings, "soundtrack_path", text="Music")
+    col.prop(settings, "soundtrack_start")
+    col.prop(settings, "soundtrack_fade")
+    if not settings.soundtrack_path:
+        return
+    try:
+        length = video.audio_length(bpy.path.abspath(settings.soundtrack_path))
+    except TimelapseError as ex:
+        body.label(text=str(ex), icon="ERROR")
+        return
+    start = settings.soundtrack_start
+    if start >= length:
+        body.label(text="Start At is past the end of the track", icon="ERROR")
+        return
+    heard = min(video_seconds, length - start)
+    box = body.box().column(align=True)
+    _row(box, "Track Length", format_video_length(length))
+    _row(box, "Plays", "%s – %s" % (format_video_length(start), format_video_length(start + heard)), icon="PLAY_SOUND")
+    if video_seconds > heard + 0.05:
+        box.label(text="Music ends %s before the video" % format_video_length(video_seconds - heard), icon="INFO")
+
+
 class BT_PT_export(_Panel, bpy.types.Panel):
     bl_idname = "BT_PT_export"
     bl_label = "Export"
@@ -263,6 +294,7 @@ class BT_PT_export(_Panel, bpy.types.Panel):
 
         per_photo = settings.frames_per_photo
         total, seconds = video.plan(photos, settings.fps, per_photo)
+        _draw_soundtrack(layout, settings, seconds)
         box = layout.box().column(align=True)
         _row(box, "Photos", str(photos))
         _row(box, "Frames / Photo", "%d  (%s)" % (per_photo, format_video_length(per_photo / settings.fps)))

@@ -19,7 +19,7 @@ Pick a camera and press **Start Recording**. You can then orbit, zoom, edit, scu
 | [User guide, installation, limitations](blender_timelapse/README.md) | How to use the add-on, its output layout, video export and known limitations |
 | [Changelog](blender_timelapse/CHANGELOG.md) | |
 | [Architecture and research notes](docs/ARCHITECTURE.md) | Module layout, the capture pipeline, design decisions and research on the reference add-ons |
-| [Testing report](docs/TESTING.md) | Results for the 1.1.0 acceptance criteria, the 20 original scenarios and 168 automated checks run on Blender 5.2.3 LTS |
+| [Testing report](docs/TESTING.md) | Results for the 1.1.0 acceptance criteria, the 20 original scenarios and 187 automated checks run on Blender 5.2.3 LTS |
 
 ## Repository layout
 

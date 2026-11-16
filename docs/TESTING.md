@@ -1,6 +1,6 @@
 # Testing Report: Blender Timelapse 1.1.0
 
-**Result: all 168 automated checks pass.** 129 run in background mode, 38 in the interactive GUI, and 1 checks quitting mid-recording. The whole suite was run twice in a row on the final code and both runs passed. Nothing failed and no check was skipped.
+**Result: all 187 automated checks pass.** 148 run in background mode, 38 in the interactive GUI, and 1 checks quitting mid-recording. The whole suite was run twice in a row on the final code and both runs passed. Nothing failed and no check was skipped.
 
 Version 1.1.0 added the export and capture changes from the implementation brief. Their acceptance criteria are covered in the next section, and the original 1.0.0 scenarios further down still pass unchanged.
 
@@ -17,6 +17,7 @@ Version 1.1.0 added the export and capture changes from the implementation brief
 | Users can export repeatedly with different settings | ✅ | Five exports of one session, each with different settings and each to a new file (`video`, `video_2`, …). |
 | Original captures are preserved across every export | ✅ | The SHA-256 hash and modification time of every photo were identical after each of the five exports. |
 | Completed sessions can be reopened and exported | ✅ | After **Reset Session**, **Open Session** on the session's `Frames` folder selected the session, and an export at 0.25 s / 24 FPS gave 36 frames. A folder with no photos is refused. An older session can be exported while a new one is recording. The session being recorded can't be exported. |
+| Soundtrack: music file, chosen start point, length of the video only | ✅ | The test track is 5 s of silence followed by a tone, so position in the file is audible. Each case ran on both encoders: **Start At 0** gives silence for the first 5 s, then the tone. **Start At 5** gives the tone throughout. The audio stream is cut to the video's 6.0 s. **Fade Out 2 s** makes the end 18–24 dB quieter. A track that runs out early leaves the video at its full 180 frames with silence after the music. The built-in encoder leaves no sound or action datablocks behind. A missing file, a Start At past the end of the track, or soundtrack turned on with no file each block export with a message. Turning the soundtrack off gives a silent video. |
 | Existing session and capture functionality still works | ✅ | All 1.0.0 checks still pass. |
 | Manual capture with a button and a shortcut | ✅ | In **Manual** mode there are no automatic captures and Capture Now adds a photo. Capture Now also works while paused. Switching to automatic mid-session resumes scheduling. Without a session, Capture Now explains that you need to start one. The Ctrl+Shift+F12 shortcut is registered in the global Screen keymap and removed when the add-on is disabled. This was checked against Blender 5.2's default keymap: the combination wasn't already used. |
 

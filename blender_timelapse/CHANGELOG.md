@@ -9,6 +9,7 @@ All notable changes to Blender Timelapse. Format: [Keep a Changelog](https://kee
 - Re-export any session as often as you like with the current settings. Each export writes a new file, and the captured photos are never touched.
 - Reopen earlier sessions for export: the Export panel's **Session** menu lists the project's sessions, and **Browse…** opens a session folder from anywhere.
 - **Manual** interval mode: the session only captures when you press Capture Now.
+- **Soundtrack** for exported videos. Pick a music file, choose where in it playback starts, and optionally fade it out. The music is cut to the video's length. Works with both the external ffmpeg and the built-in encoder.
 - **Ctrl Shift F12** keyboard shortcut for Capture Now, active in any editor.
 
 ### Changed
