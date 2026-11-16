@@ -7,7 +7,8 @@ blender_timelapse/
   properties.py          BT_Settings (per-scene PropertyGroup, saved in .blend) + AddonPreferences (ffmpeg path)
   capture.py             render ONE frame from a camera with guaranteed restore (TemporaryOverrides)
   recorder.py            Session object + scheduler timer: start / pause / resume / stop / capture_now / reset
-  video.py               MP4 export: external ffmpeg subprocess (polled) or built-in VSE encoder
+  video.py               MP4 export: external ffmpeg subprocess (polled) or built-in VSE encoder; soundtrack
+  grade.py               export-time Look: numpy implementation + equivalent ffmpeg filter chain, .cube LUT parser
   operators.py           thin UI operators; turn TimelapseError into a report
   ui.py                  N-panel (main + Camera/Recording/Settings/Advanced/Session/Export) + header REC badge
   previews.py            camera preview thumbnail (bpy.utils.previews, no Image datablock)

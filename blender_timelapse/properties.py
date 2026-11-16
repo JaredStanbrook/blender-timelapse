@@ -103,7 +103,8 @@ class BT_Settings(bpy.types.PropertyGroup):
         description="Delay a capture (up to 3 s) while you are dragging, orbiting or using another modal tool",
         default=True,
     )
-    show_advanced: BoolProperty(name="Advanced", default=False)
+    show_look: BoolProperty(name="Show Look", default=False, options={"HIDDEN"})
+    show_soundtrack: BoolProperty(name="Show Soundtrack", default=False, options={"HIDDEN"})
 
     # Export
     fps_preset: EnumProperty(
@@ -129,6 +130,18 @@ class BT_Settings(bpy.types.PropertyGroup):
     soundtrack_fade: FloatProperty(
         name="Fade Out", description="Fade the music out over the last seconds of the video. 0 cuts it hard",
         default=2.0, min=0.0, max=30.0, unit="TIME_ABSOLUTE",
+    )
+    use_look: BoolProperty(name="Look", description="Colour-grade the exported video (photos are not changed)",
+                           default=False)
+    look_exposure: FloatProperty(name="Exposure", description="Brightness in stops (+1 doubles the light)",
+                                 default=0.0, min=-4.0, max=4.0, soft_min=-2.0, soft_max=2.0, step=10)
+    look_contrast: FloatProperty(name="Contrast", description="1 is unchanged, below 1 flatter, above 1 punchier",
+                                 default=1.0, min=0.0, max=3.0, soft_max=2.0, step=5)
+    look_saturation: FloatProperty(name="Saturation", description="1 is unchanged, 0 is black and white",
+                                   default=1.0, min=0.0, max=3.0, soft_max=2.0, step=5)
+    look_lut_path: StringProperty(
+        name="LUT", description="Optional 3D .cube LUT applied after the sliders (e.g. a film emulation look)",
+        subtype="FILE_PATH", default="",
     )
     video_name: StringProperty(name="File Name", default="timelapse", description="Video file name, without extension")
     export_folder: StringProperty(

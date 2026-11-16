@@ -10,7 +10,11 @@ All notable changes to Blender Timelapse. Format: [Keep a Changelog](https://kee
 - Reopen earlier sessions for export: the Export panel's **Session** menu lists the project's sessions, and **Browse…** opens a session folder from anywhere.
 - **Manual** interval mode: the session only captures when you press Capture Now.
 - **Soundtrack** for exported videos. Pick a music file, choose where in it playback starts, and optionally fade it out. The music is cut to the video's length. Works with both the external ffmpeg and the built-in encoder.
+- **Look** colour grading for exported videos: Exposure, Contrast, Saturation and an optional 3D `.cube` LUT, with a Preview Look thumbnail. It is applied only at export, identically by both encoders, and the photos are never changed.
 - **Ctrl Shift F12** keyboard shortcut for Capture Now, active in any editor.
+
+### Fixed
+- Running **Test Capture** a second time raised an error ("key already exists"), because the preview thumbnail couldn't be replaced.
 
 ### Changed
 - Export now uses the session selected in the Export panel, not only the session that was just recorded. Starting a recording selects its new session automatically.

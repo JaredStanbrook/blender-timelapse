@@ -96,6 +96,26 @@ Each photo is repeated for **Per Photo × FPS** frames (rounded to whole frames,
 - `<File Name>.mp4` becomes `_2`, `_3` and so on, so earlier videos are kept.
 - The captured photos are only ever read, never modified, moved or deleted, so you never need to recapture.
 
+**Look (colour grading).** Tick **Look** in Export to grade the video as it's made. The settings are:
+
+| Setting | Effect |
+|---|---|
+| **Exposure** | Brightness in stops. +1 doubles the light, −1 halves it. |
+| **Contrast** | 1 is unchanged, below 1 is flatter, above 1 is punchier. Mid-grey stays put. |
+| **Saturation** | 1 is unchanged, 0 is black and white, above 1 is more vivid. |
+| **LUT** | An optional 3D `.cube` file, applied after the sliders. Use one for a ready-made look such as film emulation or teal-orange. DaVinci Resolve, Photoshop, Affinity and many free packs export `.cube` files. |
+
+- **Preview Look** shows the middle photo of the selected session with the look applied, so you can check it without exporting.
+- **↺** resets everything to neutral.
+- Like the other export settings, the look is applied only to the video and never to your photos. Change it and export again whenever you like.
+- With the external ffmpeg, grading happens inside ffmpeg and Blender stays responsive.
+- With Blender's built-in encoder, each photo is graded once into a temporary folder, which is deleted afterwards, and a progress indicator shows on the cursor.
+- Both encoders use the same maths and give the same result.
+
+**Want more than that?** For colour wheels, curves, masks or a different grade per shot, import `Frames/` as an image sequence into Blender's Video Sequencer or DaVinci Resolve.
+
+**Grade the captures themselves instead?** *Render Properties › Color Management* (exposure, gamma, look, curves) also affects captures, because they render like F12. That is baked into the photos when they're taken, though, so the Look section is usually the better place.
+
 **Soundtrack.** Tick **Soundtrack** in Export and pick a music file (MP3, WAV, OGG, FLAC, M4A, …).
 
 - **Start At** chooses where in the music file playback begins, so you can skip an intro.

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import bpy
 
-from . import capture, previews, recorder, video
-from .utils import TimelapseError, count_photos, session_dir
+from . import capture, grade, previews, recorder, video
+from .utils import TimelapseError, count_photos, list_frames, session_dir
 
 
 def _settings(context):
@@ -192,6 +192,7 @@ def export_problem(settings):
         return "No photos in %s" % folder.name
     try:
         video.soundtrack_from(settings)
+        grade.look_from(settings)
     except TimelapseError as ex:
         return str(ex)
     return None
@@ -217,9 +218,51 @@ class BT_OT_generate_video(_Base, bpy.types.Operator):
         if prefs.ffmpeg_path and exe is None:
             self.report({"WARNING"}, "FFmpeg path not found; using Blender's encoder")
         video.start(session_dir(settings.export_folder), settings.fps, settings.frames_per_photo,
-                    settings.video_name, exe, video.soundtrack_from(settings))
+                    settings.video_name, exe, video.soundtrack_from(settings), grade.look_from(settings))
         if video.job.state == "DONE":
             self.report({"INFO"}, video.job.message)
+
+
+class BT_OT_preview_look(_Base, bpy.types.Operator):
+    bl_idname = "blender_timelapse.preview_look"
+    bl_label = "Preview Look"
+    bl_description = "Show a photo from the selected session with the look applied (nothing is saved)"
+
+    @classmethod
+    def poll(cls, context):
+        return _look_source(_settings(context)) is not None
+
+    def run(self, context):
+        settings = _settings(context)
+        look = grade.look_from(settings) or grade.Look()
+        dst = Path(tempfile.gettempdir()) / "blender_timelapse" / "look_preview.png"
+        dst.parent.mkdir(exist_ok=True)
+        grade.grade_file(_look_source(settings), dst, look)
+        previews.show(dst, LOOK_PREVIEW)
+
+
+LOOK_PREVIEW = "look_preview"
+
+
+def _look_source(settings):
+    """A representative photo for the look preview: the middle photo of the export session."""
+    folder = session_dir(settings.export_folder)
+    if folder is None:
+        return None
+    photos = list_frames(folder / "Frames")
+    return photos[len(photos) // 2][1] if photos else None
+
+
+class BT_OT_reset_look(bpy.types.Operator):
+    bl_idname = "blender_timelapse.reset_look"
+    bl_label = "Reset Look"
+    bl_description = "Set exposure, contrast and saturation back to neutral and clear the LUT"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        st = _settings(context)
+        st.look_exposure, st.look_contrast, st.look_saturation, st.look_lut_path = 0.0, 1.0, 1.0, ""
+        return {"FINISHED"}
 
 
 class BT_OT_open_session(_Base, bpy.types.Operator):
@@ -257,7 +300,7 @@ class BT_OT_cancel_video(bpy.types.Operator):
 classes = (
     BT_OT_start, BT_OT_pause, BT_OT_resume, BT_OT_stop, BT_OT_capture_now, BT_OT_reset,
     BT_OT_test_capture, BT_OT_show_render, BT_OT_camera_from_view, BT_OT_open_folder,
-    BT_OT_generate_video, BT_OT_open_session, BT_OT_cancel_video,
+    BT_OT_generate_video, BT_OT_preview_look, BT_OT_reset_look, BT_OT_open_session, BT_OT_cancel_video,
 )
 
 _keymaps = []

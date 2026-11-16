@@ -11,10 +11,12 @@ Two encoders:
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import bpy
 
+from . import grade
 from .utils import TimelapseError, frame_path, list_frames, redraw_viewports, safe_name, unique_path
 
 POLL = 0.5
@@ -107,7 +109,7 @@ def plan(photos, fps, per_photo):
     return total, total / fps
 
 
-def start(session_folder, fps, per_photo, name, ffmpeg_exe, soundtrack=None):
+def start(session_folder, fps, per_photo, name, ffmpeg_exe, soundtrack=None, look=None):
     """Encode every photo held for per_photo frames at fps, with optional music.
 
     Reads the photos only; they are never modified. Returns immediately for external
@@ -127,9 +129,9 @@ def start(session_folder, fps, per_photo, name, ffmpeg_exe, soundtrack=None):
     job.total = plan(len(frames), fps, per_photo)[0]
     job.output = out
     if ffmpeg_exe and _contiguous(frames):
-        _start_external(ffmpeg_exe, frames, frames_dir, fps, per_photo, out, soundtrack)
+        _start_external(ffmpeg_exe, frames, frames_dir, fps, per_photo, out, soundtrack, look)
     else:
-        _encode_builtin(frames, fps, per_photo, out, soundtrack)
+        _encode_builtin(frames, fps, per_photo, out, soundtrack, look)
 
 
 def _audio_args(track, fps):
@@ -143,7 +145,7 @@ def _audio_args(track, fps):
     return args
 
 
-def _start_external(exe, frames, frames_dir, fps, per_photo, out, soundtrack=None):
+def _start_external(exe, frames, frames_dir, fps, per_photo, out, soundtrack=None, look=None):
     first = frames[0][0]
     pattern = str(frame_path(frames_dir, 0, frames[0][1].suffix[1:])).replace("000000", "%06d")
     job.progress_file = out.with_suffix(".progress.txt")
@@ -153,7 +155,8 @@ def _start_external(exe, frames, frames_dir, fps, per_photo, out, soundtrack=Non
         # Photos are read at fps/per_photo and resampled to fps, so each is repeated per_photo times.
         "-framerate", "%d/%d" % (fps, per_photo), "-start_number", str(first), "-i", pattern,
         *(_audio_args(soundtrack, fps) if soundtrack else []),
-        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=%d,format=yuv420p" % fps, "-r", str(fps),
+        "-vf", ",".join(grade.ffmpeg_filters(look) + ["scale=trunc(iw/2)*2:trunc(ih/2)*2", "fps=%d" % fps,
+                                                       "format=yuv420p"]), "-r", str(fps),
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-movflags", "+faststart",
         "-progress", str(job.progress_file), "-nostats",
         str(out),
@@ -270,7 +273,30 @@ def _add_builtin_audio(scene, track, fps):
         strip.keyframe_insert("volume", frame=end)
 
 
-def _encode_builtin(frames, fps, per_photo, out, soundtrack=None):
+def _graded_copies(frames, look, folder):
+    """Graded PNG copies of the photos in a temporary folder; the originals are only read."""
+    wm = bpy.context.window_manager
+    if wm:
+        wm.progress_begin(0, len(frames))
+    try:
+        graded = []
+        for n, (idx, path) in enumerate(frames):
+            dst = Path(folder) / (path.stem + ".png")
+            grade.grade_file(path, dst, look)
+            graded.append((idx, dst))
+            if wm:
+                wm.progress_update(n)
+        return graded
+    finally:
+        if wm:
+            wm.progress_end()
+
+
+def _encode_builtin(frames, fps, per_photo, out, soundtrack=None, look=None):
+    if look is not None:
+        with tempfile.TemporaryDirectory(prefix="blender_timelapse_") as tmp:
+            job.message = "Applying look..."
+            return _encode_builtin(_graded_copies(frames, look, tmp), fps, per_photo, out, soundtrack)
     width, height = _image_size(frames[0][1])
     sounds_before, actions_before = set(bpy.data.sounds), set(bpy.data.actions)
     scene = bpy.data.scenes.new("Blender Timelapse Encode")

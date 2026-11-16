@@ -78,6 +78,7 @@ def scenario():
     # -- test capture + preview
     r = op(bpy.ops.blender_timelapse.test_capture)
     check("camera test capture operator", r == {"FINISHED"})
+    check("test capture can run again (preview reload)", op(bpy.ops.blender_timelapse.test_capture) == {"FINISHED"})
     yield from wait(1.0)
     check("camera preview thumbnail available", bt.previews.icon_id() != 0)
 

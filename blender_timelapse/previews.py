@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Camera preview thumbnail for the panel (an icon, not an Image datablock)."""
+"""Preview thumbnails for the panel (icons, not Image datablocks): camera test capture and look preview."""
 
 import bpy.utils.previews
 
@@ -7,16 +7,18 @@ _pcoll = None
 _KEY = "camera_preview"
 
 
-def show(path):
+def show(path, key=_KEY):
     if _pcoll is None:
         return
-    _pcoll.load(_KEY, str(path), "IMAGE", force_reload=True)
+    if key in _pcoll:  # load() refuses existing keys; del releases the old preview
+        del _pcoll[key]
+    _pcoll.load(key, str(path), "IMAGE", force_reload=True)
 
 
-def icon_id():
-    if _pcoll is None or _KEY not in _pcoll:
+def icon_id(key=_KEY):
+    if _pcoll is None or key not in _pcoll:
         return 0
-    return _pcoll[_KEY].icon_id
+    return _pcoll[key].icon_id
 
 
 def register():

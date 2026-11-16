@@ -494,6 +494,130 @@ def t_soundtrack():
           and loudness(job.output) == -91.0)
 
 
+def decode(path, frame=0):
+    """RGB array of one frame of a video or image, decoded by ffmpeg."""
+    import subprocess
+    import numpy as np
+    w, h = (int(v) for v in subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of",
+         "csv=p=0", str(path)], capture_output=True, text=True).stdout.strip().split(","))
+    raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(path), "-vf", "select=eq(n\\,%d)" % frame,
+                          "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+    return np.frombuffer(raw, np.uint8).reshape(h, w, 3).astype(np.float32)
+
+
+def write_cube(path, size, fn, header=""):
+    import numpy as np
+    lines = [header, "LUT_3D_SIZE %d" % size]
+    g = np.linspace(0, 1, size)
+    for b in g:
+        for gg in g:
+            for r in g:
+                lines.append("%.6f %.6f %.6f" % tuple(fn(np.array([r, gg, b]))))
+    Path(path).write_text("\n".join(lines))
+
+
+def t_look():
+    """Export-time grading: same result from both encoders, matches the reference maths, photos untouched."""
+    import subprocess
+    import tempfile
+    import numpy as np
+    G = bt.grade
+    # reference maths on known values
+    v = np.array([[0.5, 0.5, 0.5], [0.2, 0.4, 0.8]], np.float32)
+    check("neutral look is identity", np.allclose(G.apply(v, G.Look()), v))
+    e1 = G.apply(np.array([[0.5, 0.5, 0.5]], np.float32), G.Look(exposure=1))[0, 0]
+    check("+1 stop doubles linear light", abs(G._to_linear(np.float32(e1)) - 2 * G._to_linear(np.float32(0.5))) < 1e-4)
+    c = G.apply(np.array([[0.25, 0.5, 0.75]], np.float32), G.Look(contrast=2))[0]
+    check("contrast pivots on mid-grey", np.allclose(c, [0.0, 0.5, 1.0]), c.tolist())
+    bw = G.apply(v, G.Look(saturation=0))
+    check("saturation 0 gives grey", np.allclose(bw[:, 0], bw[:, 1]) and np.allclose(bw[:, 1], bw[:, 2]))
+
+    luts = OUT / "luts"
+    luts.mkdir()
+    write_cube(luts / "identity.cube", 17, lambda c: c, "TITLE \"identity\"\n# comment")
+    write_cube(luts / "invert.cube", 9, lambda c: 1 - c)
+    write_cube(luts / "warm.cube", 33, lambda c: np.clip(c * [1.1, 1.0, 0.8] + [0.03, 0.0, 0.0], 0, 1))
+    (luts / "one_d.cube").write_text("LUT_1D_SIZE 2\n0 0 0\n1 1 1\n")
+    (luts / "broken.cube").write_text("LUT_3D_SIZE 4\n0 0 0\n")
+    rnd = np.random.default_rng(1).random((500, 3)).astype(np.float32)
+    check("identity LUT leaves colours unchanged", np.abs(G.apply(rnd, G.Look(lut_path=luts / "identity.cube"))
+                                                         - rnd).max() < 1e-5)
+    check("invert LUT inverts", np.abs(G.apply(rnd, G.Look(lut_path=luts / "invert.cube")) - (1 - rnd)).max() < 1e-5)
+    for bad in ("one_d.cube", "broken.cube", "missing.cube"):
+        try:
+            G.Look(lut_path=luts / bad)
+            check("bad LUT refused: " + bad, False)
+        except bt.utils.TimelapseError as ex:
+            check("bad LUT refused: " + bad, True, ex)
+
+    # a colourful session
+    folder = OUT / "Look" / "Session_001"
+    (folder / "Frames").mkdir(parents=True)
+    for i in range(1, 4):
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=160x120:r=1",
+                        "-vf", "select=eq(n\\,%d)" % (i * 3), "-frames:v", "1",
+                        str(folder / "Frames" / ("Frame_%06d.png" % i))], check=True)
+    original = digest(folder)
+    look = G.Look(exposure=0.6, contrast=1.25, saturation=0.5, lut_path=luts / "warm.cube")
+    exe = bt.video.find_ffmpeg("")
+    user_images = lambda: [i.name for i in bpy.data.images if i.type != "RENDER_RESULT"]  # noqa: E731
+    images, tmp_before = user_images(), set(Path(tempfile.gettempdir()).glob("blender_timelapse_*"))
+    outs = {}
+    for label, ffmpeg in (("ffmpeg", exe), ("built-in", None)):
+        bt.video.start(folder, 10, 2, "look_" + label, ffmpeg, None, look)
+        job = bt.video.job
+        if job.proc:
+            job.proc.wait(120)
+            bt.video._poll()
+        outs[label] = job.output
+        check("%s: graded export succeeds with exact frames" % label, job.state == "DONE"
+              and probe(job.output)[0] == 6, job.message)
+    for k in range(3):
+        src = decode(folder / "Frames" / ("Frame_%06d.png" % (k + 1)))
+        ref = G.apply(src / 255, look) * 255
+        a, b = decode(outs["ffmpeg"], k * 2), decode(outs["built-in"], k * 2)
+        mean_ref, mean_a, mean_b = ref.mean((0, 1)), a.mean((0, 1)), b.mean((0, 1))
+        check("photo %d: ffmpeg grade matches reference (mean RGB within 3)" % (k + 1),
+              np.abs(mean_a - mean_ref).max() < 3, (mean_a.round(1), mean_ref.round(1)))
+        check("photo %d: built-in grade matches reference (mean RGB within 3)" % (k + 1),
+              np.abs(mean_b - mean_ref).max() < 3, (mean_b.round(1), mean_ref.round(1)))
+        check("photo %d: encoders agree pixel-wise (mean abs diff < 4)" % (k + 1), np.abs(a - b).mean() < 4,
+              np.abs(a - b).mean())
+        check("photo %d: look visibly changed the picture" % (k + 1), np.abs(a - src).mean() > 10)
+    check("graded exports leave photos untouched", digest(folder) == original)
+    check("built-in grading leaves no images or temp folders",
+          user_images() == images
+          and set(Path(tempfile.gettempdir()).glob("blender_timelapse_*")) == tmp_before,
+          (user_images(), set(Path(tempfile.gettempdir()).glob("blender_timelapse_*")) - tmp_before))
+
+    # panel path: settings -> operator, preview, reset, validation
+    scene, cube, cam, st = setup(project="LookUI")
+    st.export_folder = str(folder)
+    st.use_look, st.look_exposure, st.look_saturation = True, 0.5, 0.0
+    st.look_lut_path = str(luts / "one_d.cube")
+    check("invalid LUT blocks export", not bpy.ops.blender_timelapse.generate_video.poll())
+    st.look_lut_path = ""
+    st.video_name = "ui_bw"
+    r, job = export(st)
+    frame = decode(job.output, 0)
+    check("operator export applies panel look (black and white)", r == {"FINISHED"}
+          and np.abs(frame[..., 0] - frame[..., 2]).mean() < 2, np.abs(frame[..., 0] - frame[..., 2]).mean())
+    r = bpy.ops.blender_timelapse.preview_look()
+    prev = Path(tempfile.gettempdir()) / "blender_timelapse" / "look_preview.png"
+    pv = decode(prev)
+    check("Preview Look renders a graded copy", r == {"FINISHED"} and np.abs(pv[..., 0] - pv[..., 2]).mean() < 1)
+    check("Preview Look twice works (preview key reused)", bpy.ops.blender_timelapse.preview_look() == {"FINISHED"})
+    bpy.ops.blender_timelapse.reset_look()
+    check("Reset Look returns to neutral", (st.look_exposure, st.look_contrast, st.look_saturation,
+                                            st.look_lut_path) == (0.0, 1.0, 1.0, "")
+          and bt.grade.look_from(st) is None)
+    st.use_look, st.video_name = False, "ui_plain"
+    r, job = export(st)
+    check("look off exports ungraded colours", np.abs(decode(job.output, 0).mean((0, 1))
+                                                      - decode(folder / "Frames" / "Frame_000001.png").mean((0, 1))).max() < 3)
+
+
 def t_manual_mode():
     scene, cube, cam, st = setup(project="Manual", interval_preset="MANUAL", capture_on_stop=False)
     check("interval None in manual mode", st.interval is None)

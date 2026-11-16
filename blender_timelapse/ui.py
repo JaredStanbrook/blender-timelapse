@@ -2,8 +2,8 @@
 
 import bpy
 
-from . import capture, previews, recorder, video
-from .operators import export_problem
+from . import capture, grade, previews, recorder, video
+from .operators import LOOK_PREVIEW, export_problem
 from .utils import (TimelapseError, count_photos, format_video_length, list_sessions, output_root, project_name,
                     session_dir)
 
@@ -232,8 +232,35 @@ class BT_MT_sessions(bpy.types.Menu):
         layout.operator("blender_timelapse.open_session", text="Browse...", icon="FILEBROWSER").directory = ""
 
 
+def _draw_look(layout, settings):
+    header, body = layout.panel_prop(settings, "show_look")
+    header.prop(settings, "use_look", text="Look")
+    if body is None:
+        return
+    body.active = settings.use_look
+    col = body.column(align=True)
+    col.use_property_split = True
+    col.use_property_decorate = False
+    col.prop(settings, "look_exposure")
+    col.prop(settings, "look_contrast")
+    col.prop(settings, "look_saturation")
+    col.separator()
+    col.prop(settings, "look_lut_path")
+    if settings.look_lut_path:
+        try:
+            grade.load_lut(bpy.path.abspath(settings.look_lut_path))
+        except TimelapseError as ex:
+            body.label(text=str(ex), icon="ERROR")
+    row = body.row(align=True)
+    row.operator("blender_timelapse.preview_look", icon="SHADING_RENDERED")
+    row.operator("blender_timelapse.reset_look", text="", icon="LOOP_BACK")
+    icon = previews.icon_id(LOOK_PREVIEW)
+    if icon:
+        body.template_icon(icon_value=icon, scale=7.0)
+
+
 def _draw_soundtrack(layout, settings, video_seconds):
-    header, body = layout.panel("BT_soundtrack", default_closed=not settings.use_soundtrack)
+    header, body = layout.panel_prop(settings, "show_soundtrack")
     header.prop(settings, "use_soundtrack", text="Soundtrack")
     if body is None:
         return
@@ -294,6 +321,7 @@ class BT_PT_export(_Panel, bpy.types.Panel):
 
         per_photo = settings.frames_per_photo
         total, seconds = video.plan(photos, settings.fps, per_photo)
+        _draw_look(layout, settings)
         _draw_soundtrack(layout, settings, seconds)
         box = layout.box().column(align=True)
         _row(box, "Photos", str(photos))
