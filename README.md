@@ -2,13 +2,13 @@
 
 Blender Timelapse is a Blender 5.2 extension that records fixed-camera timelapses of your modelling while you keep working normally.
 
-Pick a camera and press **Start Recording**. You can then orbit, zoom, edit, sculpt and undo as usual. Every few seconds, Blender Timelapse renders one frame from that camera in the background. Your viewport, selection and render settings are never changed. When you stop, **Generate Video** turns the frames into an MP4.
+Pick a camera and press **Start Recording**. You can then orbit, zoom, edit, sculpt and undo as usual. Every few seconds, or only when you press Capture Now, Blender Timelapse renders one frame from that camera in the background. Your viewport, selection and render settings are never changed. When you stop, **Generate Video** turns the frames into an MP4. You choose how long each photo stays on screen and the FPS, and you can export the same session again with different settings at any time.
 
 ![Panel while recording](docs/images/panel_recording.png)
 
 ## Download and install
 
-- **Installable package:** [`dist/blender_timelapse-1.0.0.zip`](dist/blender_timelapse-1.0.0.zip)
+- **Installable package:** [`dist/blender_timelapse-1.1.0.zip`](dist/blender_timelapse-1.1.0.zip)
 - In Blender, go to **Edit › Preferences › Get Extensions › ⌄ › Install from Disk…** and pick the ZIP. You can also drag the ZIP onto the Blender window.
 - Open a 3D Viewport, press **N**, and click the **Blender Timelapse** tab.
 
@@ -19,7 +19,7 @@ Pick a camera and press **Start Recording**. You can then orbit, zoom, edit, scu
 | [User guide, installation, limitations](blender_timelapse/README.md) | How to use the add-on, its output layout, video export and known limitations |
 | [Changelog](blender_timelapse/CHANGELOG.md) | |
 | [Architecture and research notes](docs/ARCHITECTURE.md) | Module layout, the capture pipeline, design decisions and research on the reference add-ons |
-| [Testing report](docs/TESTING.md) | Results for the 20 required scenarios and 129 automated checks run on Blender 5.2.3 LTS |
+| [Testing report](docs/TESTING.md) | Results for the 1.1.0 acceptance criteria, the 20 original scenarios and 168 automated checks run on Blender 5.2.3 LTS |
 
 ## Repository layout
 

@@ -55,36 +55,47 @@ def _contiguous(frames):
     return all(idx == frames[0][0] + i for i, (idx, _p) in enumerate(frames))
 
 
-def start(session_folder, fps, name, ffmpeg_exe):
-    """Encode; returns immediately for external FFmpeg, blocks for the built-in path."""
+def plan(photos, fps, per_photo):
+    """(total video frames, video seconds) for an export: each photo is held for per_photo frames."""
+    total = photos * per_photo
+    return total, total / fps
+
+
+def start(session_folder, fps, per_photo, name, ffmpeg_exe):
+    """Encode every photo held for per_photo frames at fps.
+
+    Reads the photos only; they are never modified. Returns immediately for external
+    FFmpeg, blocks for the built-in path.
+    """
     if job.state == "RUNNING":
         raise TimelapseError("A video is already being generated")
     frames_dir = Path(session_folder) / "Frames"
     frames = list_frames(frames_dir)
-    if len(frames) < 2:
-        raise TimelapseError("Need at least 2 captured frames to make a video")
+    if not frames:
+        raise TimelapseError("No captured photos in '%s'" % frames_dir)
     if len({p.suffix.lower() for _i, p in frames}) > 1:
         raise TimelapseError("Frames folder mixes PNG and JPEG files")
     out = output_path(session_folder, name)
 
     job.__init__()
-    job.total = len(frames)
+    job.total = plan(len(frames), fps, per_photo)[0]
     job.output = out
     if ffmpeg_exe and _contiguous(frames):
-        _start_external(ffmpeg_exe, frames, frames_dir, fps, out)
+        _start_external(ffmpeg_exe, frames, frames_dir, fps, per_photo, out)
     else:
-        _encode_builtin(frames, fps, out)
+        _encode_builtin(frames, fps, per_photo, out)
 
 
-def _start_external(exe, frames, frames_dir, fps, out):
+def _start_external(exe, frames, frames_dir, fps, per_photo, out):
     first = frames[0][0]
     pattern = str(frame_path(frames_dir, 0, frames[0][1].suffix[1:])).replace("000000", "%06d")
     job.progress_file = out.with_suffix(".progress.txt")
     log_path = out.with_suffix(".ffmpeg.log")
     cmd = [
         exe, "-hide_banner", "-nostdin", "-n",
-        "-framerate", str(fps), "-start_number", str(first), "-i", pattern,
-        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+        # Photos are read at fps/per_photo and resampled to fps, so each is repeated per_photo times.
+        "-framerate", "%d/%d" % (fps, per_photo), "-start_number", str(first), "-i", pattern,
+        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=%d,format=yuv420p" % fps, "-r", str(fps),
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-movflags", "+faststart",
         "-progress", str(job.progress_file), "-nostats",
         str(out),
@@ -181,7 +192,7 @@ def _image_size(path):
         bpy.data.images.remove(img)
 
 
-def _encode_builtin(frames, fps, out):
+def _encode_builtin(frames, fps, per_photo, out):
     width, height = _image_size(frames[0][1])
     scene = bpy.data.scenes.new("Blender Timelapse Encode")
     try:
@@ -202,13 +213,17 @@ def _encode_builtin(frames, fps, out):
         # Frames are already display-referred; pass them through untouched.
         scene.view_settings.view_transform = "Standard"
         scene.view_settings.look = "None"
-        scene.frame_start, scene.frame_end = 1, len(frames)
+        scene.frame_start, scene.frame_end = 1, job.total
 
         strip = scene.sequence_editor_create().strips.new_image(
             "Frames", str(frames[0][1]), 1, 1, fit_method="FIT")
+        # Each photo appears per_photo times in a row: element i is shown on frame i.
+        for _ in range(per_photo - 1):
+            strip.elements.append(frames[0][1].name)
         for _idx, path in frames[1:]:
-            strip.elements.append(path.name)
-        strip.frame_final_duration = len(frames)
+            for _ in range(per_photo):
+                strip.elements.append(path.name)
+        strip.frame_final_duration = job.total
 
         job.state, job.message = "RUNNING", "Encoding with Blender..."
         with bpy.context.temp_override(scene=scene):

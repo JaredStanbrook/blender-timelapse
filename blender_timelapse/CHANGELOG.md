@@ -2,6 +2,19 @@
 
 All notable changes to Blender Timelapse. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.1.0] - 2026-11-16
+
+### Added
+- **Duration per photo** export setting. Each photo is held for `Duration per photo × FPS` frames, and the video lasts `photos × Duration per photo` seconds. The Export panel shows frames per photo, total frames and video length before you export.
+- Re-export any session as often as you like with the current settings. Each export writes a new file, and the captured photos are never touched.
+- Reopen earlier sessions for export: the Export panel's **Session** menu lists the project's sessions, and **Browse…** opens a session folder from anywhere.
+- **Manual** interval mode: the session only captures when you press Capture Now.
+- **Ctrl Shift F12** keyboard shortcut for Capture Now, active in any editor.
+
+### Changed
+- Export now uses the session selected in the Export panel, not only the session that was just recorded. Starting a recording selects its new session automatically.
+- A video can now be made from a single photo.
+
 ## [1.0.0] - 2026-11-09
 
 First release, targeting Blender 5.2.3 LTS.

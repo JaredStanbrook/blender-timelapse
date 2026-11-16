@@ -37,6 +37,12 @@ def view_matrix():
     return [round(v, 5) for row in rv3d.view_matrix for v in row], rv3d.view_perspective
 
 
+def shortcut():
+    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("Screen")
+    return [k for k in (km.keymap_items if km else []) if k.idname == "blender_timelapse.capture_now"
+            and k.type == "F12" and k.ctrl and k.shift and not k.alt]
+
+
 def wait(seconds):
     end = time.monotonic() + seconds
     while time.monotonic() < end:
@@ -66,6 +72,8 @@ def scenario():
     scene.objects["Cube"].select_set(True)
     bpy.context.view_layer.objects.active = scene.objects["Cube"]
     before = render_state(scene)
+
+    check("Capture Now shortcut Ctrl+Shift+F12 registered", bool(shortcut()))
 
     # -- test capture + preview
     r = op(bpy.ops.blender_timelapse.test_capture)
@@ -134,7 +142,10 @@ def scenario():
         yield 0.4
     check("undo went past camera selection", bpy.context.scene.blender_timelapse.camera is None)
     n_u2 = len(frames(s))
-    yield from wait(1.3)
+    for _ in range(50):  # the first capture after undo rebuilds the depsgraph and can be slow
+        if len(frames(s)) > n_u2:
+            break
+        yield 0.1
     check("undo past camera choice keeps recording from the same camera", len(frames(s)) > n_u2 and not s.last_error,
           s.last_error)
     op(bpy.ops.ed.redo)
@@ -220,6 +231,7 @@ def scenario():
     bpy.ops.preferences.addon_disable(module=KEY)
     n6 = len(bt.utils.list_frames(s2.folder / "Frames"))
     yield from wait(2.5)
+    check("shortcut removed when add-on disabled", not shortcut())
     check("17 disabling mid-recording stops captures", len(bt.utils.list_frames(s2.folder / "Frames")) == n6
           and n6 >= 1, n6)
     meta = json.loads((s2.folder / "session_info.json").read_text())

@@ -235,7 +235,7 @@ def t_video():
     rec.stop()
     exe = bt.video.find_ffmpeg("")
     check("ffmpeg found on PATH", exe)
-    bt.video.start(s.folder, 24, "timelapse", exe)
+    bt.video.start(s.folder, 24, 1, "timelapse", exe)
     job = bt.video.job
     job.proc.wait(60)
     bt.video._poll()
@@ -243,7 +243,7 @@ def t_video():
     check("16 frames kept after export", len(frames(s)) == 12)
     scenes_before = len(bpy.data.scenes)
     images_before = len(bpy.data.images)
-    bt.video.start(s.folder, 30, "timelapse", None)
+    bt.video.start(s.folder, 30, 1, "timelapse", None)
     out2 = s.folder / "timelapse_2.mp4"
     check("16 built-in encoder video, no overwrite", job.state == "DONE" and out2.is_file(), job.message)
     check("16 built-in encoder leaves no scene/images", len(bpy.data.scenes) == scenes_before
@@ -259,16 +259,177 @@ def t_video():
               and info["codec_name"] == "h264", info)
     # gap in numbering -> built-in path handles explicit list
     frames(s)[5][1].unlink()
-    bt.video.start(s.folder, 24, "gappy.mp4", exe)
+    bt.video.start(s.folder, 24, 1, "gappy.mp4", exe)
     check("16 gapped sequence encodes (built-in fallback)", job.state == "DONE" and (s.folder / "gappy.mp4").is_file())
     try:
         empty_scene, _c, _cam, st2 = setup(project="Empty", capture_on_stop=False)
         s3 = rec.start(empty_scene)
         rec.stop()
-        bt.video.start(s3.folder, 24, "x", exe)
-        check("video with <2 frames refused", False)
+        bt.video.start(s3.folder, 24, 1, "x", exe)
+        check("video with no photos refused", False)
     except bt.utils.TimelapseError:
-        check("video with <2 frames refused", True)
+        check("video with no photos refused", True)
+
+
+def probe(path):
+    import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+                        "stream=nb_read_frames,r_frame_rate:format=duration", "-of", "json", str(path)],
+                       capture_output=True, text=True)
+    info = json.loads(r.stdout)
+    return int(info["streams"][0]["nb_read_frames"]), info["streams"][0]["r_frame_rate"], float(info["format"]["duration"])
+
+
+def photo_changes(path):
+    """Video frame numbers where the picture changes (per-frame mean luma jumps)."""
+    import re
+    import subprocess
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(path), "-vf", "showinfo", "-f", "null", "-"],
+                       capture_output=True, text=True)
+    means = [int(m) for m in re.findall(r"mean:\[(\d+)", r.stderr)]
+    return [i for i in range(1, len(means)) if abs(means[i] - means[i - 1]) > 4]
+
+
+def export(st, exe=True):
+    """Export the selected session through the real operator; wait for external ffmpeg."""
+    prefs = bpy.context.preferences.addons[addon_key_saved].preferences
+    prefs.ffmpeg_path = "" if exe else "/nonexistent/ffmpeg"  # missing path forces the built-in encoder
+    result = bpy.ops.blender_timelapse.generate_video()
+    job = bt.video.job
+    if job.proc:
+        job.proc.wait(120)
+        bt.video._poll()
+    prefs.ffmpeg_path = ""
+    return result, job
+
+
+def digest(folder):
+    import hashlib
+    return {p.name: (hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_mtime_ns)
+            for _i, p in bt.utils.list_frames(Path(folder) / "Frames")}
+
+
+def t_photo_duration_export():
+    """Brief acceptance criteria: duration per photo x FPS, repeatable export, originals untouched."""
+    scene, cube, cam, st = setup(project="Durations", capture_on_stop=False)
+    s = rec.start(scene)
+    check("new session becomes the export session", bt.utils.session_dir(st.export_folder) == s.folder)
+    check("export refused while that session records", not bpy.ops.blender_timelapse.generate_video.poll())
+    for i in range(6):
+        cube.rotation_euler.z = i * 0.25
+        tick_capture()
+    rec.stop()
+    names = [p.name for _i, p in frames(s)]
+    times = [p.stat().st_mtime_ns for _i, p in frames(s)]
+    check("photos saved sequentially in chronological order",
+          names == ["Frame_%06d.png" % i for i in range(1, 7)] and times == sorted(times), names)
+    original = digest(s.folder)
+
+    def case(label, duration, fps_preset, fps, exe, want_frames, want_seconds):
+        st.photo_duration, st.fps_preset = duration, fps_preset
+        st.video_name = "video"
+        r, job = export(st, exe)
+        out = job.output
+        n, rate, secs = probe(out) if out and out.is_file() else (None, None, None)
+        check("%s: %d frames, %g s @%d fps" % (label, want_frames, want_seconds, fps),
+              r == {"FINISHED"} and job.state == "DONE" and n == want_frames and rate == "%d/1" % fps
+              and abs(secs - want_seconds) < 0.05, (r, job.message, n, rate, secs))
+        check("%s: UI plan matches" % label, bt.video.plan(6, st.fps, st.frames_per_photo) == (want_frames,
+              want_seconds))
+        check("%s: originals unchanged" % label, digest(s.folder) == original)
+        return out
+
+    outs = [case("1 s/photo 30 fps (ffmpeg)", 1.0, "30", 30, True, 180, 6.0),
+            case("2 s/photo 30 fps re-export (ffmpeg)", 2.0, "30", 30, True, 360, 12.0),
+            case("0.5 s/photo 24 fps (ffmpeg)", 0.5, "24", 24, True, 72, 3.0),
+            case("1 s/photo 30 fps (built-in)", 1.0, "30", 30, False, 180, 6.0),
+            case("2 s/photo 60 fps (built-in)", 2.0, "60", 60, False, 720, 12.0)]
+    check("every export is a new file, none overwritten", len({o.name for o in outs}) == len(outs)
+          and all(o.is_file() for o in outs), [o.name for o in outs])
+    check("settings stay editable after export", (st.photo_duration, st.fps) == (2.0, 60))
+    st.fps_preset, st.photo_duration = "30", 1 / 30 + 0.001
+    check("frames per photo rounds and is at least 1", st.frames_per_photo == 1 and
+          bt.properties.frames_per_photo(0.001, 24) == 1 and bt.properties.frames_per_photo(1.5, 24) == 36)
+
+    # reopen the finished session after the recorder forgot it
+    rec.reset()
+    st.export_folder = ""
+    check("export disabled without a session", not bpy.ops.blender_timelapse.generate_video.poll())
+    r = bpy.ops.blender_timelapse.open_session(directory=str(s.folder / "Frames"))
+    check("reopen session (picking its Frames folder works too)", r == {"FINISHED"}
+          and bt.utils.session_dir(st.export_folder) == s.folder)
+    st.photo_duration, st.fps_preset, st.video_name = 0.25, "24", "reopened"
+    r, job = export(st)
+    check("reopened session exports with latest settings (6 frames per photo)",
+          job.state == "DONE" and probe(job.output)[0] == 36, job.message)
+    try:
+        bpy.ops.blender_timelapse.open_session(directory=str(OUT))
+        check("opening a folder without photos refused", False)
+    except RuntimeError:
+        check("opening a folder without photos refused", True)
+
+    # older session stays exportable while a new one records
+    s2 = rec.start(scene)
+    tick_capture()
+    bpy.ops.blender_timelapse.open_session(directory=str(s.folder))
+    check("an earlier session can be exported while recording another",
+          bpy.ops.blender_timelapse.generate_video.poll())
+    rec.stop()
+
+
+def t_hold_exact_frames():
+    """Each photo is held exactly frames-per-photo frames, by both encoders."""
+    import subprocess
+    folder = OUT / "Holds" / "Session_001"
+    (folder / "Frames").mkdir(parents=True)
+    for i, grey in enumerate((20, 90, 160, 230), start=1):
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x%02x%02x%02x:s=64x48" %
+                        (grey, grey, grey), "-frames:v", "1", str(folder / "Frames" / ("Frame_%06d.png" % i))],
+                       check=True)
+    for exe, label in ((bt.video.find_ffmpeg(""), "ffmpeg"), (None, "built-in")):
+        bt.video.start(folder, 30, 15, "hold_" + label, exe)
+        job = bt.video.job
+        if job.proc:
+            job.proc.wait(60)
+            bt.video._poll()
+        check("%s: photo changes exactly every 15 frames" % label,
+              photo_changes(job.output) == [15, 30, 45] and probe(job.output)[0] == 60,
+              (photo_changes(job.output), probe(job.output)))
+    single = OUT / "Holds" / "Session_002"
+    (single / "Frames").mkdir(parents=True)
+    (folder / "Frames" / "Frame_000001.png").rename(single / "Frames" / "Frame_000001.png")
+    bt.video.start(single, 30, 60, "one", bt.video.find_ffmpeg(""))
+    bt.video.job.proc.wait(60)
+    bt.video._poll()
+    check("a single photo exports as a still video (2 s)", probe(bt.video.job.output)[0] == 60)
+
+
+def t_manual_mode():
+    scene, cube, cam, st = setup(project="Manual", interval_preset="MANUAL", capture_on_stop=False)
+    check("interval None in manual mode", st.interval is None)
+    s = rec.start(scene)
+    for _ in range(5):
+        tick_capture()
+    check("manual mode: no automatic captures", s.frames == 0 and s.countdown() is None, s.frames)
+    r = bpy.ops.blender_timelapse.capture_now()
+    check("manual mode: Capture Now adds a photo", r == {"FINISHED"} and s.frames == 1)
+    rec._tick()
+    check("manual mode: still no automatic capture after manual one", s.frames == 1)
+    rec.pause()
+    bpy.ops.blender_timelapse.capture_now()
+    check("Capture Now works while paused", s.frames == 2)
+    rec.resume()
+    st.interval_preset = "1"
+    rec._tick()
+    check("switch to automatic mid-session schedules next capture", 0 < s.countdown() <= 1.0, s.countdown())
+    tick_capture()
+    check("automatic captures after switching", s.frames == 3)
+    rec.stop()
+    try:
+        bpy.ops.blender_timelapse.capture_now()
+        check("Capture Now without a session explains why", False)
+    except RuntimeError as ex:
+        check("Capture Now without a session explains why", "Start a recording first" in str(ex), ex)
 
 
 def t_reopen_blend():

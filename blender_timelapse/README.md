@@ -4,7 +4,7 @@ Record fixed-camera timelapses of your modelling while you keep working normally
 
 Pick a camera, press **Start Recording**, then model as usual. You can orbit, zoom, pan, edit, sculpt and undo. Every few seconds Blender Timelapse renders one frame from that camera in the background. Your viewport, selection and render settings are never changed. When you stop, you have a numbered image sequence, and one click turns it into an MP4.
 
-- Version 1.0.0. Needs Blender 5.2 or newer; tested on 5.2.3 LTS.
+- Version 1.1.0. Needs Blender 5.2 or newer; tested on 5.2.3 LTS.
 - License: GPL-3.0-or-later.
 
 ---
@@ -19,7 +19,7 @@ Pick a camera, press **Start Recording**, then model as usual. You can orbit, zo
 You can also drag the ZIP onto the Blender window, or install from the command line:
 
 ```
-blender --command extension install-file -r user_default -e blender_timelapse-1.0.0.zip
+blender --command extension install-file -r user_default -e blender_timelapse-1.1.0.zip
 ```
 
 ## Quick start
@@ -27,20 +27,22 @@ blender --command extension install-file -r user_default -e blender_timelapse-1.
 1. **Set up a camera.** Use any perspective or orthographic camera. In the **Camera** section, the **+** button creates one that matches your current view.
 2. **Check the framing.** **Test Capture** renders one frame with your settings and shows a thumbnail. The image button beside it opens the full render.
 3. **Press Start Recording** and work. A red **REC** badge with the elapsed time and frame count appears in every 3D Viewport header.
-4. **Pause**, **Resume** or **Capture Now** whenever you like.
+4. **Pause**, **Resume** or **Capture Now** whenever you like. Capture Now's shortcut is **Ctrl Shift F12**, and it works in any editor.
 5. **Stop Recording.** By default one last frame is taken.
-6. In **Export**, choose the FPS and press **Generate Video**.
+6. In **Export**, set **Per Photo** (how long each photo is shown) and **FPS**, then press **Generate Video**. You can change either setting and export again as often as you like.
+
+**Only want photos you take yourself?** Set **Interval** to **Manual**. The session then captures nothing on its own, and only **Capture Now** (or Ctrl Shift F12) adds a photo. This suits step-by-step builds, for example a piece of furniture photographed after each stage.
 
 ## Panel reference
 
 | Section | Controls |
 |---|---|
 | **Camera** | The recording camera, **+** (new camera from view), camera type and lens, preview thumbnail, **Test Capture**, **View Last Capture** |
-| **Recording** | **Start Recording**, **Pause / Resume**, **Stop Recording**, **Capture Now**, **Reset Session** (↺). Also shows the next-capture countdown and any errors. |
-| **Settings** | **Interval** (1, 2, 5, 10, 30, 60 s or Custom), **Engine**, **Resolution** (25 / 50 / 75 / 100 % or Custom W×H), **Format** (PNG / JPEG + quality), **Folder**, **Project** |
+| **Recording** | **Start Recording**, **Pause / Resume**, **Stop Recording**, **Capture Now** (Ctrl Shift F12), **Reset Session** (↺). Also shows the next-capture countdown (or "Manual") and any errors. |
+| **Settings** | **Interval** (1, 2, 5, 10, 30, 60 s, Custom, or Manual), **Engine**, **Resolution** (25 / 50 / 75 / 100 % or Custom W×H), **Format** (PNG / JPEG + quality), **Folder**, **Project** |
 | **Settings › Advanced** | **Samples Override** (EEVEE/Cycles, default 16), **Use Compositor**, **Capture Final Frame on Stop**, **Wait While Interacting** |
 | **Session** | Status, elapsed time, frames, interval, image size, session folder, **Open Folder** |
-| **Export** | **FPS** (24 / 30 / 60 / Custom), **File Name**, **Generate Video**, progress and result |
+| **Export** | **Session** (the latest one by default, ⌄ to reopen any earlier session), **Per Photo** (seconds each photo is shown), **FPS** (24 / 30 / 60 / Custom), **File Name**; a summary of photos, frames per photo, total frames and **Video Length**; **Generate Video**, progress and result |
 
 Settings are saved per scene in your .blend file.
 
@@ -76,7 +78,25 @@ Settings are saved per scene in your .blend file.
 
 ## Video export
 
-**Generate Video** writes `<File Name>.mp4` (H.264, yuv420p) into the session folder. If that file already exists, it writes `_2`, `_3` and so on. Frames are never deleted.
+Two settings control the video, and neither is ever locked:
+
+- **Per Photo**: how many seconds each captured photo stays on screen.
+- **FPS**: frames per second of the video.
+
+Each photo is repeated for **Per Photo × FPS** frames (rounded to whole frames, at least 1). The video is **photos × Per Photo** seconds long, and the Export panel shows the result before you export.
+
+| Photos | Per Photo | FPS | Frames per photo | Total frames | Video length |
+|---|---|---|---|---|---|
+| 60 | 1 s | 30 | 30 | 1,800 | 1:00 |
+| 60 | 2 s | 30 | 60 | 3,600 | 2:00 |
+| 600 | 0.1 s | 30 | 3 | 1,800 | 1:00 (a fast timelapse) |
+
+**Export again as often as you like.**
+- Every export reads the photos with the settings as they are at that moment, and writes a new file.
+- `<File Name>.mp4` becomes `_2`, `_3` and so on, so earlier videos are kept.
+- The captured photos are only ever read, never modified, moved or deleted, so you never need to recapture.
+
+**Re-exporting an older session.** The **Session** row in Export points to the session you recorded most recently. Its ⌄ menu lists every session in the current project with its photo count, and **Browse…** opens any session folder, or its `Frames` folder, from anywhere. You can export an earlier session even while a new one is recording; only the session currently being recorded can't be exported.
 
 - If an `ffmpeg` executable is on your PATH, or set in **Preferences › Add-ons › Blender Timelapse › FFmpeg Executable**, it runs as a separate process. Blender stays responsive and a progress bar is shown.
 - Otherwise Blender's built-in encoder is used, through a temporary scene that is deleted afterwards. Blender is busy until encoding finishes.
@@ -84,7 +104,8 @@ Settings are saved per scene in your .blend file.
 **Using another editor:** import `Frames/Frame_000001.png` as an image sequence. That works in Blender's Video Sequencer, DaVinci Resolve, Premiere, After Effects, Kdenlive and others. With ffmpeg:
 
 ```
-ffmpeg -framerate 30 -i Frames/Frame_%06d.png -c:v libx264 -pix_fmt yuv420p -crf 18 timelapse.mp4
+# 1 s per photo at 30 FPS:  -framerate = FPS / frames-per-photo
+ffmpeg -framerate 30/30 -i Frames/Frame_%06d.png -vf fps=30 -c:v libx264 -pix_fmt yuv420p -crf 18 timelapse.mp4
 ```
 
 ## How it stays out of your way

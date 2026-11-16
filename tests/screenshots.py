@@ -1,4 +1,7 @@
-"""Capture documentation screenshots of the panel (Xvfb + --enable-event-simulate)."""
+"""Capture documentation screenshots of the panel (Xvfb + --enable-event-simulate).
+
+    xvfb-run -a -s "-screen 0 1600x1700x24" blender --enable-event-simulate --python tests/screenshots.py -- <out>
+"""
 
 import os
 import subprocess
@@ -72,6 +75,7 @@ def steps():
         yield 0.5
     grab("panel_recording")
     bt.recorder.stop("user")
+    st.photo_duration, st.fps_preset = 2.0, "30"
     yield 0.5
     grab("panel_stopped")
 

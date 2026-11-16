@@ -31,7 +31,8 @@ class BT_Settings(bpy.types.PropertyGroup):
         name="Interval",
         description="Time between captures",
         items=[(p, "%ss" % p, "Capture every %s second%s" % (p, "" if p == "1" else "s")) for p in INTERVAL_PRESETS]
-        + [("CUSTOM", "Custom", "Use a custom interval")],
+        + [("CUSTOM", "Custom", "Use a custom interval"),
+           ("MANUAL", "Manual", "No automatic captures: only Capture Now (Ctrl Shift F12) adds photos")],
         default="5",
     )
     interval_custom: FloatProperty(
@@ -111,15 +112,38 @@ class BT_Settings(bpy.types.PropertyGroup):
         default="30",
     )
     fps_custom: IntProperty(name="Custom FPS", default=12, min=1, max=240)
+    photo_duration: FloatProperty(
+        name="Duration per Photo",
+        description="How long each captured photo stays on screen in the video. Change it and export again any time",
+        default=1.0, min=0.01, soft_min=0.04, max=600.0, soft_max=10.0, step=10, precision=2, unit="TIME_ABSOLUTE",
+    )
     video_name: StringProperty(name="File Name", default="timelapse", description="Video file name, without extension")
+    export_folder: StringProperty(
+        name="Session",
+        description="Session folder to export. Set automatically when you record; pick any earlier session to re-export it",
+        subtype="DIR_PATH",
+        default="",
+    )
 
     @property
     def interval(self):
+        """Seconds between automatic captures, or None for manual-only sessions."""
+        if self.interval_preset == "MANUAL":
+            return None
         return self.interval_custom if self.interval_preset == "CUSTOM" else float(self.interval_preset)
 
     @property
     def fps(self):
         return self.fps_custom if self.fps_preset == "CUSTOM" else int(self.fps_preset)
+
+    @property
+    def frames_per_photo(self):
+        """Frames per photo = Duration per photo × FPS (rounded to whole frames, at least 1)."""
+        return frames_per_photo(self.photo_duration, self.fps)
+
+
+def frames_per_photo(duration, fps):
+    return max(1, round(duration * fps))
 
 
 class BT_Preferences(bpy.types.AddonPreferences):
