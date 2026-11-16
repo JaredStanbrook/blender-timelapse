@@ -118,4 +118,5 @@ These numbers come from CPU-only software rendering. A real GPU is much faster, 
 ### Fixed in 1.1.0 testing
 7. **Two test waits were too short, not add-on bugs.** One test assumed 60 FPS where 30 FPS was intended. The wait for the first capture after an undo was raised from 1.3 s to 5 s, because that capture rebuilds the depsgraph and can take longer.
 8. **Test Capture failed the second time it ran** with "key 'camera_preview' already exists". The previews collection refuses to reload a key, and the old tests only ever captured once. The old preview is now released before reloading, and the GUI test runs Test Capture twice.
+9. **The GUI test was overwriting the documentation screenshots with black images.** Blender's screenshot operator returns black under Xvfb. Screenshots now come only from `tests/screenshots.py`, and a test run verifies the images are unchanged by their checksums.
 

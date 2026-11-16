@@ -16,7 +16,6 @@ from common import addon, addon_key, check, diff, finish, pixels, render_state  
 
 OUT = Path(sys.argv[sys.argv.index("--") + 1])
 REPORT = sys.argv[sys.argv.index("--") + 2]
-SHOTS = Path(__file__).resolve().parent.parent / "docs" / "images"
 
 
 def view3d():
@@ -108,10 +107,6 @@ def scenario():
     times = [p.stat().st_mtime for _i, p in a_frames]
     gaps = [b - a for a, b in zip(times, times[1:])]
     check("never captures faster than interval (1 s)", min(gaps) >= 0.95, ["%.2f" % g for g in gaps])
-
-    SHOTS.mkdir(parents=True, exist_ok=True)
-    with bpy.context.temp_override(window=win):
-        bpy.ops.screen.screenshot(filepath=str(SHOTS / "panel_recording.png"))
 
     # -- phase B: edit geometry in Edit Mode while recording
     n0 = len(frames(s))
@@ -221,8 +216,6 @@ def scenario():
         yield 0.1
     check("16 video generated while UI stays live", bt.video.job.state == "DONE"
           and (s.folder / "timelapse.mp4").is_file(), bt.video.job.message)
-    with bpy.context.temp_override(window=win):
-        bpy.ops.screen.screenshot(filepath=str(SHOTS / "panel_stopped.png"))
 
     # -- repeated session, then disable add-on mid-recording
     check("20 second session starts", op(bpy.ops.blender_timelapse.start) == {"FINISHED"})

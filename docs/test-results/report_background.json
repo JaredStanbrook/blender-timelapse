@@ -32,7 +32,7 @@
   {
     "test": "04 start creates session folder",
     "passed": true,
-    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_001"
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_001"
   },
   {
     "test": "04 timer registered",
@@ -47,7 +47,7 @@
   {
     "test": "05 first frame captured",
     "passed": true,
-    "detail": "[(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_001/Frames/Frame_000001.png'))]"
+    "detail": "[(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_001/Frames/Frame_000001.png'))]"
   },
   {
     "test": "render settings restored after capture",
@@ -92,7 +92,7 @@
   {
     "test": "08 resume waits one interval",
     "passed": true,
-    "detail": "0.9999775539999973"
+    "detail": "0.9999807410001722"
   },
   {
     "test": "08 capture after resume continues numbering",
@@ -107,7 +107,7 @@
   {
     "test": "11 interval change applies live",
     "passed": true,
-    "detail": "6.983020557999907"
+    "detail": "6.982793923000145"
   },
   {
     "test": "10 stop captures final frame",
@@ -127,7 +127,7 @@
   {
     "test": "metadata written",
     "passed": true,
-    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.1.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'test', 'started': '2026-11-16T22:42:30+00:00', 'ended': '2026-11-16T22:42:30+00:00', 'recorded_seconds': 0.44, 'frames': 7, 'pauses': 1, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
+    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.1.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'test', 'started': '2026-11-16T22:50:02+00:00', 'ended': '2026-11-16T22:50:02+00:00', 'recorded_seconds': 0.41, 'frames': 7, 'pauses': 1, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
   },
   {
     "test": "render settings restored after session",
@@ -147,7 +147,7 @@
   {
     "test": "12/13 PNG 25%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_002/Frames/Frame_000001.png'))], (80, 60))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_002/Frames/Frame_000001.png'))], (80, 60))"
   },
   {
     "test": "12/13 PNG 25 restored",
@@ -157,7 +157,7 @@
   {
     "test": "12/13 PNG 50%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_003/Frames/Frame_000001.png'))], (160, 120))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_003/Frames/Frame_000001.png'))], (160, 120))"
   },
   {
     "test": "12/13 PNG 50 restored",
@@ -167,7 +167,7 @@
   {
     "test": "12/13 PNG 75%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_004/Frames/Frame_000001.png'))], (240, 180))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_004/Frames/Frame_000001.png'))], (240, 180))"
   },
   {
     "test": "12/13 PNG 75 restored",
@@ -177,7 +177,7 @@
   {
     "test": "12/13 PNG 100%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_005/Frames/Frame_000001.png'))], (320, 240))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_005/Frames/Frame_000001.png'))], (320, 240))"
   },
   {
     "test": "12/13 PNG 100 restored",
@@ -187,7 +187,7 @@
   {
     "test": "12/13 PNG CUSTOM%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_006/Frames/Frame_000001.png'))], (200, 100))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_006/Frames/Frame_000001.png'))], (200, 100))"
   },
   {
     "test": "12/13 PNG CUSTOM restored",
@@ -197,7 +197,7 @@
   {
     "test": "12/13 JPEG 25%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_007/Frames/Frame_000001.jpg'))], (80, 60))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_007/Frames/Frame_000001.jpg'))], (80, 60))"
   },
   {
     "test": "12/13 JPEG 25 restored",
@@ -207,7 +207,7 @@
   {
     "test": "12/13 JPEG 50%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_008/Frames/Frame_000001.jpg'))], (160, 120))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_008/Frames/Frame_000001.jpg'))], (160, 120))"
   },
   {
     "test": "12/13 JPEG 50 restored",
@@ -217,7 +217,7 @@
   {
     "test": "12/13 JPEG 75%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_009/Frames/Frame_000001.jpg'))], (240, 180))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_009/Frames/Frame_000001.jpg'))], (240, 180))"
   },
   {
     "test": "12/13 JPEG 75 restored",
@@ -227,7 +227,7 @@
   {
     "test": "12/13 JPEG 100%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_010/Frames/Frame_000001.jpg'))], (320, 240))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_010/Frames/Frame_000001.jpg'))], (320, 240))"
   },
   {
     "test": "12/13 JPEG 100 restored",
@@ -237,7 +237,7 @@
   {
     "test": "12/13 JPEG CUSTOM%",
     "passed": true,
-    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/BG/Session_011/Frames/Frame_000001.jpg'))], (200, 100))"
+    "detail": "([(1, PosixPath('/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/BG/Session_011/Frames/Frame_000001.jpg'))], (200, 100))"
   },
   {
     "test": "12/13 JPEG CUSTOM restored",
@@ -307,7 +307,7 @@
   {
     "test": "14 invalid dir rejected: file as folder",
     "passed": true,
-    "detail": "Cannot write to '/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/not_a_folder/BG': Not a directory"
+    "detail": "Cannot write to '/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/not_a_folder/BG': Not a directory"
   },
   {
     "test": "14 invalid dir rejected: unwritable",
@@ -327,7 +327,7 @@
   {
     "test": "15 new session after highest existing",
     "passed": true,
-    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/Existing/Session_008"
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/Existing/Session_008"
   },
   {
     "test": "15 previous session preserved",
@@ -547,7 +547,7 @@
   {
     "test": "ffmpeg: video still 180 frames with music",
     "passed": true,
-    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/Music/Session_001/ffmpeg_from5.mp4"
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/Music/Session_001/ffmpeg_from5.mp4"
   },
   {
     "test": "ffmpeg: music cut to video length (6 s)",
@@ -577,7 +577,7 @@
   {
     "test": "built-in: video still 180 frames with music",
     "passed": true,
-    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/Music/Session_001/built-in_from5.mp4"
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/Music/Session_001/built-in_from5.mp4"
   },
   {
     "test": "built-in: music cut to video length (6 s)",
@@ -677,7 +677,7 @@
   {
     "test": "bad LUT refused: missing.cube",
     "passed": true,
-    "detail": "LUT not found: /tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/luts/missing.cube"
+    "detail": "LUT not found: /tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/luts/missing.cube"
   },
   {
     "test": "ffmpeg: graded export succeeds with exact frames",
@@ -817,7 +817,7 @@
   {
     "test": "switch to automatic mid-session schedules next capture",
     "passed": true,
-    "detail": "0.9999748709999494"
+    "detail": "0.9999722309999015"
   },
   {
     "test": "automatic captures after switching",
@@ -852,7 +852,7 @@
   {
     "test": "19 recording works after reopen",
     "passed": true,
-    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g3/out_bg/Reopen/Session_002"
+    "detail": "/tmp/claude-0/-home-user-blender-timelapse/f181f677-9d96-5144-8631-8b4540dbe943/scratchpad/g4/out_bg/Reopen/Session_002"
   },
   {
     "test": "scene rename does not break session",
@@ -877,7 +877,7 @@
   {
     "test": "17 disable stops session",
     "passed": true,
-    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.1.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'add-on disabled', 'started': '2026-11-16T22:42:47+00:00', 'ended': '2026-11-16T22:42:47+00:00', 'recorded_seconds': 0.02, 'frames': 1, 'pauses': 0, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
+    "detail": "{'addon': 'Blender Timelapse', 'addon_version': '1.1.0', 'blender_version': '5.2.3 LTS', 'blend_file': None, 'scene': 'Scene', 'camera': 'RecCam', 'status': 'stopped', 'end_reason': 'add-on disabled', 'started': '2026-11-16T22:50:30+00:00', 'ended': '2026-11-16T22:50:30+00:00', 'recorded_seconds': 0.02, 'frames': 1, 'pauses': 0, 'frame_pattern': 'Frames/Frame_%06d.png', 'resolution': [160, 120], 'capture': {'engine': 'WORKBENCH', 'resolution': '50', 'width': 1920, 'height': 1080, 'format': 'PNG', 'jpeg_quality': 90, 'samples': 16, 'use_compositor': False}, 'last_error': None}"
   },
   {
     "test": "17/18 no timers left after disable",

@@ -52,7 +52,7 @@
   {
     "test": "never captures faster than interval (1 s)",
     "passed": true,
-    "detail": "['1.13', '1.00', '1.02', '1.05', '1.04']"
+    "detail": "['1.02', '1.12', '1.10', '1.15', '1.02']"
   },
   {
     "test": "07 edits made in Edit Mode appear in frames",
@@ -82,7 +82,7 @@
   {
     "test": "captures keep running in Sculpt Mode",
     "passed": true,
-    "detail": "('RECORDING', '', None, 0.5519517680000945, [0])"
+    "detail": "('RECORDING', '', None, 0.5513924089998454, [0])"
   },
   {
     "test": "pause operator",
