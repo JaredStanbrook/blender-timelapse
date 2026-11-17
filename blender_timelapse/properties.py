@@ -31,7 +31,8 @@ class BT_Settings(bpy.types.PropertyGroup):
         name="Interval",
         description="Time between captures",
         items=[(p, "%ss" % p, "Capture every %s second%s" % (p, "" if p == "1" else "s")) for p in INTERVAL_PRESETS]
-        + [("CUSTOM", "Custom", "Use a custom interval")],
+        + [("CUSTOM", "Custom", "Use a custom interval"),
+           ("MANUAL", "Manual", "No automatic captures: only Capture Now (Ctrl Shift F12) adds photos")],
         default="5",
     )
     interval_custom: FloatProperty(
@@ -102,7 +103,8 @@ class BT_Settings(bpy.types.PropertyGroup):
         description="Delay a capture (up to 3 s) while you are dragging, orbiting or using another modal tool",
         default=True,
     )
-    show_advanced: BoolProperty(name="Advanced", default=False)
+    show_look: BoolProperty(name="Show Look", default=False, options={"HIDDEN"})
+    show_soundtrack: BoolProperty(name="Show Soundtrack", default=False, options={"HIDDEN"})
 
     # Export
     fps_preset: EnumProperty(
@@ -111,15 +113,63 @@ class BT_Settings(bpy.types.PropertyGroup):
         default="30",
     )
     fps_custom: IntProperty(name="Custom FPS", default=12, min=1, max=240)
+    photo_duration: FloatProperty(
+        name="Duration per Photo",
+        description="How long each captured photo stays on screen in the video. Change it and export again any time",
+        default=1.0, min=0.01, soft_min=0.04, max=600.0, soft_max=10.0, step=10, precision=2, unit="TIME_ABSOLUTE",
+    )
+    use_soundtrack: BoolProperty(name="Soundtrack", description="Add music to the exported video", default=False)
+    soundtrack_path: StringProperty(
+        name="Music", description="Audio file to play under the video (MP3, WAV, OGG, FLAC, M4A...)",
+        subtype="FILE_PATH", default="",
+    )
+    soundtrack_start: FloatProperty(
+        name="Start At", description="Where in the music file playback begins. The music is cut when the video ends",
+        default=0.0, min=0.0, soft_max=600.0, unit="TIME_ABSOLUTE",
+    )
+    soundtrack_fade: FloatProperty(
+        name="Fade Out", description="Fade the music out over the last seconds of the video. 0 cuts it hard",
+        default=2.0, min=0.0, max=30.0, unit="TIME_ABSOLUTE",
+    )
+    use_look: BoolProperty(name="Look", description="Colour-grade the exported video (photos are not changed)",
+                           default=False)
+    look_exposure: FloatProperty(name="Exposure", description="Brightness in stops (+1 doubles the light)",
+                                 default=0.0, min=-4.0, max=4.0, soft_min=-2.0, soft_max=2.0, step=10)
+    look_contrast: FloatProperty(name="Contrast", description="1 is unchanged, below 1 flatter, above 1 punchier",
+                                 default=1.0, min=0.0, max=3.0, soft_max=2.0, step=5)
+    look_saturation: FloatProperty(name="Saturation", description="1 is unchanged, 0 is black and white",
+                                   default=1.0, min=0.0, max=3.0, soft_max=2.0, step=5)
+    look_lut_path: StringProperty(
+        name="LUT", description="Optional 3D .cube LUT applied after the sliders (e.g. a film emulation look)",
+        subtype="FILE_PATH", default="",
+    )
     video_name: StringProperty(name="File Name", default="timelapse", description="Video file name, without extension")
+    export_folder: StringProperty(
+        name="Session",
+        description="Session folder to export. Set automatically when you record; pick any earlier session to re-export it",
+        subtype="DIR_PATH",
+        default="",
+    )
 
     @property
     def interval(self):
+        """Seconds between automatic captures, or None for manual-only sessions."""
+        if self.interval_preset == "MANUAL":
+            return None
         return self.interval_custom if self.interval_preset == "CUSTOM" else float(self.interval_preset)
 
     @property
     def fps(self):
         return self.fps_custom if self.fps_preset == "CUSTOM" else int(self.fps_preset)
+
+    @property
+    def frames_per_photo(self):
+        """Frames per photo = Duration per photo × FPS (rounded to whole frames, at least 1)."""
+        return frames_per_photo(self.photo_duration, self.fps)
+
+
+def frames_per_photo(duration, fps):
+    return max(1, round(duration * fps))
 
 
 class BT_Preferences(bpy.types.AddonPreferences):

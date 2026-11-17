@@ -1,6 +1,27 @@
-# Testing Report: Blender Timelapse 1.0.0
+# Testing Report: Blender Timelapse 1.1.0
 
-**Result: all 129 automated checks pass.** 92 run in background mode, 36 in the interactive GUI, and 1 checks quitting mid-recording. The whole suite was run twice in a row and both runs passed. Nothing failed and no check was skipped.
+**Result: all 219 automated checks pass.** 179 run in background mode, 39 in the interactive GUI, and 1 checks quitting mid-recording. The whole suite was run twice in a row on the final code and both runs passed. Nothing failed and no check was skipped.
+
+Version 1.1.0 added the export and capture changes from the implementation brief. Their acceptance criteria are covered in the next section, and the original 1.0.0 scenarios further down still pass unchanged.
+
+## 1.1.0 acceptance criteria
+
+| Criterion | Result | How it was checked |
+|---|---|---|
+| Captures use the selected fixed-angle camera | ✅ | The `render_pre` probe still sees the recording camera on every capture. The 1.0.0 navigation test still produces pixel-identical frames. |
+| Images are saved in chronological order | ✅ | Files are `Frame_000001…000006` in capture order, and their modification times never decrease. |
+| Each image is repeated for the configured duration | ✅ | Four flat-grey photos at 15 frames per photo: the picture changes on exactly frames 15, 30 and 45 (60 frames in all), with both the ffmpeg and the built-in encoder. |
+| FPS determines the number of frames per second | ✅ | ffprobe reports a frame rate of 24/1, 30/1 or 60/1, matching the setting. |
+| Video duration = photos × duration per photo | ✅ | 6 photos at 1 s / 30 FPS: 180 frames and 6.0 s. At 2 s / 30 FPS: 360 frames and 12.0 s. At 0.5 s / 24 FPS: 72 frames and 3.0 s. At 2 s / 60 FPS (built-in encoder): 720 frames and 12.0 s. The panel's `video.plan` gives the same totals. |
+| Settings remain editable after stopping | ✅ | Duration and FPS were changed between exports and after them. The Export panel never disables them. |
+| Users can export repeatedly with different settings | ✅ | Five exports of one session, each with different settings and each to a new file (`video`, `video_2`, …). |
+| Original captures are preserved across every export | ✅ | The SHA-256 hash and modification time of every photo were identical after each of the five exports. |
+| Completed sessions can be reopened and exported | ✅ | After **Reset Session**, **Open Session** on the session's `Frames` folder selected the session, and an export at 0.25 s / 24 FPS gave 36 frames. A folder with no photos is refused. An older session can be exported while a new one is recording. The session being recorded can't be exported. |
+| Soundtrack: music file, chosen start point, length of the video only | ✅ | The test track is 5 s of silence followed by a tone, so position in the file is audible. Each case ran on both encoders: **Start At 0** gives silence for the first 5 s, then the tone. **Start At 5** gives the tone throughout. The audio stream is cut to the video's 6.0 s. **Fade Out 2 s** makes the end 18–24 dB quieter. A track that runs out early leaves the video at its full 180 frames with silence after the music. The built-in encoder leaves no sound or action datablocks behind. A missing file, a Start At past the end of the track, or soundtrack turned on with no file each block export with a message. Turning the soundtrack off gives a silent video. |
+| Look: exposure, contrast, saturation, `.cube` LUT, applied at export only | ✅ | **Reference maths:** a neutral look changes nothing. +1 stop exactly doubles linear light. Contrast pivots on mid-grey (0.25 / 0.5 / 0.75 → 0 / 0.5 / 1). Saturation 0 gives grey. An identity LUT and an inverting LUT behave exactly (error < 1e-5). **Encoders agree:** three colourful photos were graded with exposure 0.6, contrast 1.25, saturation 0.5 and a warm 33³ LUT. ffmpeg and the built-in encoder each match the numpy reference to within 2 of 255 in mean RGB, and agree with each other at about 2.2 mean absolute pixel difference, which is within H.264 noise. **Safety:** photos are byte-identical afterwards. The built-in path leaves no images and no temporary folders. **Panel path:** 1D, broken and missing LUTs are refused and block export. A panel look (saturation 0) gives a black-and-white video. Preview Look works and can be run repeatedly. Reset Look returns to neutral. With Look off, colours are unchanged. |
+| Existing session and capture functionality still works | ✅ | All 1.0.0 checks still pass. |
+| Manual capture with a button and a shortcut | ✅ | In **Manual** mode there are no automatic captures and Capture Now adds a photo. Capture Now also works while paused. Switching to automatic mid-session resumes scheduling. Without a session, Capture Now explains that you need to start one. The Ctrl+Shift+F12 shortcut is registered in the global Screen keymap and removed when the add-on is disabled. This was checked against Blender 5.2's default keymap: the combination wasn't already used. |
+
 
 ## Test environment
 
@@ -76,6 +97,7 @@ These numbers come from CPU-only software rendering. A real GPU is much faster, 
 | Cycles (16 spp) | 3.4 s | 13.5 s |
 
 ## Not tested
+- **The Ctrl+Shift+F12 key press itself.** The test checks that the shortcut is registered, and calls the operator it runs, but no physical key press was simulated.
 
 - **Windows and macOS.** Only Linux was available. The code uses only cross-platform APIs: `pathlib`, `os.replace`, `shutil.disk_usage`, `subprocess` with `CREATE_NO_WINDOW` on Windows, and `wm.path_open`. It still needs a run on those systems.
 - **Real GPUs and real input devices.** Navigation was driven by the same operators that the mouse and keyboard call, under Xvfb with software OpenGL. Hand-held mouse orbiting and timing on a GPU were not exercised.
@@ -93,140 +115,8 @@ These numbers come from CPU-only software rendering. A real GPU is much faster, 
 5. **Undo could stop a recording.** Undoing past the step where the camera was picked cleared `settings.camera`, so captures failed and the recording auto-paused. The session now holds the camera by `session_uid`, which is fixed at Start and survives undo and renames. The GUI test reproduces this deterministically.
 6. **A test-harness issue, not an add-on bug.** The tests held a `Scene` reference across undo. This confirmed the add-on's design choice to look scenes up by `session_uid`.
 
-## Full check list (latest run)
+### Fixed in 1.1.0 testing
+7. **Two test waits were too short, not add-on bugs.** One test assumed 60 FPS where 30 FPS was intended. The wait for the first capture after an undo was raised from 1.3 s to 5 s, because that capture rebuilds the depsgraph and can take longer.
+8. **Test Capture failed the second time it ran** with "key 'camera_preview' already exists". The previews collection refuses to reload a key, and the old tests only ever captured once. The old preview is now released before reloading, and the GUI test runs Test Capture twice.
+9. **The GUI test was overwriting the documentation screenshots with black images.** Blender's screenshot operator returns black under Xvfb. Screenshots now come only from `tests/screenshots.py`, and a test run verifies the images are unchanged by their checksums.
 
-**report_background.json** (92)
-
-- ✅ 01 add-on installed
-- ✅ 02 add-on enabled
-- ✅ 02b panels registered
-- ✅ 03 camera poll accepts camera
-- ✅ 03 camera poll rejects mesh
-- ✅ 03 ortho camera selectable
-- ✅ 04 start creates session folder
-- ✅ 04 timer registered
-- ✅ 04 second start rejected
-- ✅ 05 first frame captured
-- ✅ render settings restored after capture
-- ✅ 05 multiple frames
-- ✅ 07 geometry edit visible in frames
-- ✅ never captures before interval
-- ✅ 08 paused state
-- ✅ 08 pause prevents captures
-- ✅ 08 elapsed frozen while paused
-- ✅ 08 resume continues same session
-- ✅ 08 resume waits one interval
-- ✅ 08 capture after resume continues numbering
-- ✅ 09 manual capture
-- ✅ 11 interval change applies live
-- ✅ 10 stop captures final frame
-- ✅ 10 stop sets STOPPED
-- ✅ 18 timer removed on stop
-- ✅ metadata written
-- ✅ render settings restored after session
-- ✅ camera object untouched
-- ✅ capture_now refused after stop
-- ✅ 12/13 PNG 25%
-- ✅ 12/13 PNG 25 restored
-- ✅ 12/13 PNG 50%
-- ✅ 12/13 PNG 50 restored
-- ✅ 12/13 PNG 75%
-- ✅ 12/13 PNG 75 restored
-- ✅ 12/13 PNG 100%
-- ✅ 12/13 PNG 100 restored
-- ✅ 12/13 PNG CUSTOM%
-- ✅ 12/13 PNG CUSTOM restored
-- ✅ 12/13 JPEG 25%
-- ✅ 12/13 JPEG 25 restored
-- ✅ 12/13 JPEG 50%
-- ✅ 12/13 JPEG 50 restored
-- ✅ 12/13 JPEG 75%
-- ✅ 12/13 JPEG 75 restored
-- ✅ 12/13 JPEG 100%
-- ✅ 12/13 JPEG 100 restored
-- ✅ 12/13 JPEG CUSTOM%
-- ✅ 12/13 JPEG CUSTOM restored
-- ✅ engine WORKBENCH captures
-- ✅ engine WORKBENCH used for render, via RecCam
-- ✅ engine WORKBENCH restores settings
-- ✅ engine EEVEE captures
-- ✅ engine EEVEE used for render, via RecCam
-- ✅ engine EEVEE restores settings
-- ✅ engine CYCLES captures
-- ✅ engine CYCLES used for render, via RecCam
-- ✅ engine CYCLES restores settings
-- ✅ engine SCENE captures
-- ✅ engine SCENE used for render, via RecCam
-- ✅ engine SCENE restores settings
-- ✅ 14 invalid dir rejected: file as folder
-- ✅ 14 invalid dir rejected: unwritable
-- ✅ 14 invalid dir rejected: relative unsaved
-- ✅ no camera rejected
-- ✅ 15 new session after highest existing
-- ✅ 15 previous session preserved
-- ✅ 20 repeated session gets new folder
-- ✅ storage loss pauses with error
-- ✅ stop after storage loss is clean
-- ✅ ffmpeg found on PATH
-- ✅ 16 external ffmpeg video
-- ✅ 16 frames kept after export
-- ✅ 16 built-in encoder video, no overwrite
-- ✅ 16 built-in encoder leaves no scene/images
-- ✅ 16 timelapse.mp4: 12 frames @24 fps h264
-- ✅ 16 timelapse_2.mp4: 12 frames @30 fps h264
-- ✅ 16 gapped sequence encodes (built-in fallback)
-- ✅ video with <2 frames refused
-- ✅ file load stops session
-- ✅ file load removes timer
-- ✅ 19 settings persist in .blend
-- ✅ 19 .blend not modified by recording
-- ✅ 19 recording works after reopen
-- ✅ scene rename does not break session
-- ✅ camera rename / cleared pointer: same camera keeps recording
-- ✅ deleted camera reported, no crash
-- ✅ repeated failures auto-pause
-- ✅ 17 disable stops session
-- ✅ 17/18 no timers left after disable
-- ✅ 17 UI classes unregistered
-- ✅ re-enable works
-
-**report_gui.json** (36)
-
-- ✅ viewport starts in free view
-- ✅ camera test capture operator
-- ✅ camera preview thumbnail available
-- ✅ start operator
-- ✅ duplicate start blocked by poll
-- ✅ 06 frames captured while navigating
-- ✅ 06 orbit/pan/zoom never changes captured angle (pixel-identical)
-- ✅ 06 viewport not forced into camera view
-- ✅ never captures faster than interval (1 s)
-- ✅ 07 edits made in Edit Mode appear in frames
-- ✅ 07 edit visible while still in Edit Mode
-- ✅ undo went past camera selection
-- ✅ undo past camera choice keeps recording from the same camera
-- ✅ undo/redo during recording keeps capturing
-- ✅ captures keep running in Sculpt Mode
-- ✅ pause operator
-- ✅ 08 no captures while paused (3 s)
-- ✅ 08 elapsed frozen while paused
-- ✅ resume operator
-- ✅ 08 captures resume in same session
-- ✅ 11 interval change to 2 s takes effect
-- ✅ 09 capture-now operator
-- ✅ 10 stop operator
-- ✅ 18 no captures after stop / timer gone
-- ✅ sequential numbering without gaps
-- ✅ render/scene/selection/workspace state preserved
-- ✅ viewport keeps the user's navigated view
-- ✅ .blend never saved by add-on
-- ✅ generate video operator
-- ✅ 16 video generated while UI stays live
-- ✅ 20 second session starts
-- ✅ 20 new folder for repeat
-- ✅ 17 disabling mid-recording stops captures
-- ✅ 17 session closed with metadata
-- ✅ 18 no add-on timer left
-- ✅ re-enable after disable
-
-- ✅ quit mid-recording closes session (tests/test_quit.py, checked by run_tests.sh)

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import bpy
 
-from . import capture, previews, recorder, video
-from .utils import TimelapseError
+from . import capture, grade, previews, recorder, video
+from .utils import TimelapseError, count_photos, list_frames, session_dir
 
 
 def _settings(context):
@@ -84,11 +84,11 @@ class BT_OT_stop(_Base, bpy.types.Operator):
 class BT_OT_capture_now(_Base, bpy.types.Operator):
     bl_idname = "blender_timelapse.capture_now"
     bl_label = "Capture Now"
-    bl_description = "Add one frame to the session immediately"
+    bl_description = "Add one photo to the session immediately (Ctrl Shift F12)"
 
     @classmethod
     def poll(cls, _context):
-        return recorder.is_active() and not capture.is_busy()
+        return not capture.is_busy()
 
     def run(self, _context):
         recorder.capture_now()
@@ -178,15 +178,38 @@ class BT_OT_open_folder(_Base, bpy.types.Operator):
         bpy.ops.wm.path_open(filepath=str(recorder.get().folder))
 
 
+def export_problem(settings):
+    """Why the selected session can't be exported right now, or None."""
+    folder = session_dir(settings.export_folder)
+    if folder is None:
+        return "Record a session or open one first"
+    s = recorder.get()
+    if s is not None and recorder.is_active() and folder == s.folder:
+        return "Stop recording to export this session"
+    if video.job.state == "RUNNING":
+        return "A video is already being generated"
+    if count_photos(folder) == 0:
+        return "No photos in %s" % folder.name
+    try:
+        video.soundtrack_from(settings)
+        grade.look_from(settings)
+    except TimelapseError as ex:
+        return str(ex)
+    return None
+
+
 class BT_OT_generate_video(_Base, bpy.types.Operator):
     bl_idname = "blender_timelapse.generate_video"
     bl_label = "Generate Video"
-    bl_description = "Encode the session's frames to MP4. Frames are kept"
+    bl_description = ("Encode the session's photos to MP4 with the current Duration per Photo and FPS. "
+                      "Photos are never changed, so you can export again with different settings")
 
     @classmethod
-    def poll(cls, _context):
-        s = recorder.get()
-        return s is not None and s.state == recorder.STOPPED and video.job.state != "RUNNING"
+    def poll(cls, context):
+        problem = export_problem(_settings(context))
+        if problem:
+            cls.poll_message_set(problem)
+        return problem is None
 
     def run(self, context):
         settings = _settings(context)
@@ -194,9 +217,74 @@ class BT_OT_generate_video(_Base, bpy.types.Operator):
         exe = video.find_ffmpeg(prefs.ffmpeg_path)
         if prefs.ffmpeg_path and exe is None:
             self.report({"WARNING"}, "FFmpeg path not found; using Blender's encoder")
-        video.start(recorder.get().folder, settings.fps, settings.video_name, exe)
+        video.start(session_dir(settings.export_folder), settings.fps, settings.frames_per_photo,
+                    settings.video_name, exe, video.soundtrack_from(settings), grade.look_from(settings))
         if video.job.state == "DONE":
             self.report({"INFO"}, video.job.message)
+
+
+class BT_OT_preview_look(_Base, bpy.types.Operator):
+    bl_idname = "blender_timelapse.preview_look"
+    bl_label = "Preview Look"
+    bl_description = "Show a photo from the selected session with the look applied (nothing is saved)"
+
+    @classmethod
+    def poll(cls, context):
+        return _look_source(_settings(context)) is not None
+
+    def run(self, context):
+        settings = _settings(context)
+        look = grade.look_from(settings) or grade.Look()
+        dst = Path(tempfile.gettempdir()) / "blender_timelapse" / "look_preview.png"
+        dst.parent.mkdir(exist_ok=True)
+        grade.grade_file(_look_source(settings), dst, look)
+        previews.show(dst, LOOK_PREVIEW)
+
+
+LOOK_PREVIEW = "look_preview"
+
+
+def _look_source(settings):
+    """A representative photo for the look preview: the middle photo of the export session."""
+    folder = session_dir(settings.export_folder)
+    if folder is None:
+        return None
+    photos = list_frames(folder / "Frames")
+    return photos[len(photos) // 2][1] if photos else None
+
+
+class BT_OT_reset_look(bpy.types.Operator):
+    bl_idname = "blender_timelapse.reset_look"
+    bl_label = "Reset Look"
+    bl_description = "Set exposure, contrast and saturation back to neutral and clear the LUT"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        st = _settings(context)
+        st.look_exposure, st.look_contrast, st.look_saturation, st.look_lut_path = 0.0, 1.0, 1.0, ""
+        return {"FINISHED"}
+
+
+class BT_OT_open_session(_Base, bpy.types.Operator):
+    bl_idname = "blender_timelapse.open_session"
+    bl_label = "Open Session"
+    bl_description = "Choose a recorded session to export (again)"
+
+    directory: bpy.props.StringProperty(subtype="DIR_PATH")
+    filter_folder: bpy.props.BoolProperty(default=True, options={"HIDDEN"})
+
+    def invoke(self, context, _event):
+        if self.directory:
+            return self.execute(context)
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def run(self, context):
+        folder = session_dir(self.directory)
+        if folder is None or count_photos(folder) == 0:
+            raise TimelapseError("No captured photos found in '%s' (expected a Frames folder)" % self.directory)
+        _settings(context).export_folder = str(folder)
+        self.report({"INFO"}, "Opened %s (%d photos)" % (folder.name, count_photos(folder)))
 
 
 class BT_OT_cancel_video(bpy.types.Operator):
@@ -212,15 +300,24 @@ class BT_OT_cancel_video(bpy.types.Operator):
 classes = (
     BT_OT_start, BT_OT_pause, BT_OT_resume, BT_OT_stop, BT_OT_capture_now, BT_OT_reset,
     BT_OT_test_capture, BT_OT_show_render, BT_OT_camera_from_view, BT_OT_open_folder,
-    BT_OT_generate_video, BT_OT_cancel_video,
+    BT_OT_generate_video, BT_OT_preview_look, BT_OT_reset_look, BT_OT_open_session, BT_OT_cancel_video,
 )
+
+_keymaps = []
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+    kc = bpy.context.window_manager.keyconfigs.addon
+    if kc:  # None in background mode
+        km = kc.keymaps.new(name="Screen")  # global: works in any editor
+        _keymaps.append((km, km.keymap_items.new(BT_OT_capture_now.bl_idname, "F12", "PRESS", ctrl=True, shift=True)))
 
 
 def unregister():
+    for km, kmi in _keymaps:
+        km.keymap_items.remove(kmi)
+    _keymaps.clear()
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

@@ -2,8 +2,10 @@
 
 import bpy
 
-from . import capture, previews, recorder, video
-from .utils import output_root, project_name, TimelapseError
+from . import capture, grade, previews, recorder, video
+from .operators import LOOK_PREVIEW, export_problem
+from .utils import (TimelapseError, count_photos, format_video_length, list_sessions, output_root, project_name,
+                    session_dir)
 
 CATEGORY = "Blender Timelapse"
 
@@ -115,6 +117,8 @@ class BT_PT_recording(_Panel, bpy.types.Panel):
                 layout.label(text="Capturing...", icon="RENDER_STILL")
             elif s.deferred_since is not None:
                 layout.label(text="Waiting for you to finish...", icon="TIME")
+            elif cd is None:
+                layout.label(text="Manual: Capture Now or Ctrl Shift F12", icon="HAND")
             else:
                 layout.label(text="Next capture in %.0f s" % max(cd, 0), icon="TIME")
             if s.slow:
@@ -197,12 +201,93 @@ class BT_PT_session(_Panel, bpy.types.Panel):
         _row(col, "Status", recorder.status_text(s))
         _row(col, "Elapsed", recorder.elapsed_text(s))
         _row(col, "Frames", str(s.frames))
-        _row(col, "Interval", "%g s" % context.scene.blender_timelapse.interval)
+        interval = context.scene.blender_timelapse.interval
+        _row(col, "Interval", "Manual" if interval is None else "%g s" % interval)
         if s.resolution:
             _row(col, "Size", "%d x %d %s" % (*s.resolution, s.ext.upper()))
         _row(col, "Folder", s.folder.name)
         layout.label(text=str(s.folder.parent), icon="FILE_FOLDER")
         layout.operator("blender_timelapse.open_folder", icon="FOLDER_REDIRECT")
+
+
+class BT_MT_sessions(bpy.types.Menu):
+    bl_idname = "BT_MT_sessions"
+    bl_label = "Sessions"
+
+    def draw(self, context):
+        layout = self.layout
+        settings = context.scene.blender_timelapse
+        try:
+            sessions = list_sessions(output_root(settings) / project_name(settings))
+        except TimelapseError:
+            sessions = []
+        for folder in sessions[:20]:
+            n = count_photos(folder)
+            op = layout.operator("blender_timelapse.open_session", text="%s  (%d photos)" % (folder.name, n),
+                                 icon="FILE_FOLDER" if n else "BLANK1")
+            op.directory = str(folder)
+        if not sessions:
+            layout.label(text="No sessions in this project yet")
+        layout.separator()
+        layout.operator("blender_timelapse.open_session", text="Browse...", icon="FILEBROWSER").directory = ""
+
+
+def _draw_look(layout, settings):
+    header, body = layout.panel_prop(settings, "show_look")
+    header.prop(settings, "use_look", text="Look")
+    if body is None:
+        return
+    body.active = settings.use_look
+    col = body.column(align=True)
+    col.use_property_split = True
+    col.use_property_decorate = False
+    col.prop(settings, "look_exposure")
+    col.prop(settings, "look_contrast")
+    col.prop(settings, "look_saturation")
+    col.separator()
+    col.prop(settings, "look_lut_path")
+    if settings.look_lut_path:
+        try:
+            grade.load_lut(bpy.path.abspath(settings.look_lut_path))
+        except TimelapseError as ex:
+            body.label(text=str(ex), icon="ERROR")
+    row = body.row(align=True)
+    row.operator("blender_timelapse.preview_look", icon="SHADING_RENDERED")
+    row.operator("blender_timelapse.reset_look", text="", icon="LOOP_BACK")
+    icon = previews.icon_id(LOOK_PREVIEW)
+    if icon:
+        body.template_icon(icon_value=icon, scale=7.0)
+
+
+def _draw_soundtrack(layout, settings, video_seconds):
+    header, body = layout.panel_prop(settings, "show_soundtrack")
+    header.prop(settings, "use_soundtrack", text="Soundtrack")
+    if body is None:
+        return
+    body.active = settings.use_soundtrack
+    col = body.column()
+    col.use_property_split = True
+    col.use_property_decorate = False
+    col.prop(settings, "soundtrack_path", text="Music")
+    col.prop(settings, "soundtrack_start")
+    col.prop(settings, "soundtrack_fade")
+    if not settings.soundtrack_path:
+        return
+    try:
+        length = video.audio_length(bpy.path.abspath(settings.soundtrack_path))
+    except TimelapseError as ex:
+        body.label(text=str(ex), icon="ERROR")
+        return
+    start = settings.soundtrack_start
+    if start >= length:
+        body.label(text="Start At is past the end of the track", icon="ERROR")
+        return
+    heard = min(video_seconds, length - start)
+    box = body.box().column(align=True)
+    _row(box, "Track Length", format_video_length(length))
+    _row(box, "Plays", "%s – %s" % (format_video_length(start), format_video_length(start + heard)), icon="PLAY_SOUND")
+    if video_seconds > heard + 0.05:
+        box.label(text="Music ends %s before the video" % format_video_length(video_seconds - heard), icon="INFO")
 
 
 class BT_PT_export(_Panel, bpy.types.Panel):
@@ -212,18 +297,37 @@ class BT_PT_export(_Panel, bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
         settings = context.scene.blender_timelapse
+
+        # Which session: defaults to the latest recording, any earlier one can be reopened.
+        folder = session_dir(settings.export_folder)
+        row = layout.row(align=True)
+        if folder is None:
+            row.label(text="No session selected", icon="INFO")
+        else:
+            row.label(text="%s / %s" % (folder.parent.name, folder.name), icon="FILE_FOLDER")
+        row.menu(BT_MT_sessions.bl_idname, text="", icon="DOWNARROW_HLT")
+        photos = count_photos(folder) if folder else 0
+
+        # Settings are never locked: change them and export again as often as you like.
         col = layout.column()
+        col.use_property_split = True
+        col.use_property_decorate = False
+        col.prop(settings, "photo_duration", text="Per Photo")
         col.prop(settings, "fps_preset")
         if settings.fps_preset == "CUSTOM":
             col.prop(settings, "fps_custom")
         col.prop(settings, "video_name")
 
-        s = recorder.get()
-        if s and s.frames:
-            layout.label(text="%d frames → %.1f s of video" % (s.frames, s.frames / settings.fps), icon="TIME")
+        per_photo = settings.frames_per_photo
+        total, seconds = video.plan(photos, settings.fps, per_photo)
+        _draw_look(layout, settings)
+        _draw_soundtrack(layout, settings, seconds)
+        box = layout.box().column(align=True)
+        _row(box, "Photos", str(photos))
+        _row(box, "Frames / Photo", "%d  (%s)" % (per_photo, format_video_length(per_photo / settings.fps)))
+        _row(box, "Total Frames", "{:,}".format(total))
+        _row(box, "Video Length", format_video_length(seconds), icon="TIME")
 
         job = video.job
         if job.state == "RUNNING":
@@ -234,9 +338,10 @@ class BT_PT_export(_Panel, bpy.types.Panel):
             row = layout.row()
             row.scale_y = 1.4
             row.operator("blender_timelapse.generate_video", icon="FILE_MOVIE")
-            if s and s.state != recorder.STOPPED:
-                layout.label(text="Stop recording to export", icon="INFO")
-            if job.message:
+            problem = export_problem(settings)
+            if problem:
+                layout.label(text=problem, icon="INFO")
+            elif job.message:
                 layout.label(text=job.message, icon="CHECKMARK" if job.state == "DONE" else "ERROR")
 
 
@@ -251,7 +356,7 @@ def draw_header_indicator(self, _context):
               icon="REC" if row.alert else "PAUSE")
 
 
-classes = (BT_PT_main, BT_PT_camera, BT_PT_recording, BT_PT_settings, BT_PT_advanced, BT_PT_session, BT_PT_export)
+classes = (BT_MT_sessions, BT_PT_main, BT_PT_camera, BT_PT_recording, BT_PT_settings, BT_PT_advanced, BT_PT_session, BT_PT_export)
 
 
 def register():

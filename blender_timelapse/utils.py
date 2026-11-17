@@ -26,6 +26,16 @@ class TimelapseError(Exception):
     """An expected, user-facing problem (bad path, no camera, disk full...)."""
 
 
+def format_video_length(seconds):
+    """1.5 -> '1.5 s', 75 -> '1:15', 3725 -> '1:02:05'."""
+    if seconds < 60:
+        return "%g s" % round(seconds, 2)
+    seconds = round(seconds)
+    if seconds < 3600:
+        return "%d:%02d" % (seconds // 60, seconds % 60)
+    return "%d:%02d:%02d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
+
+
 def format_duration(seconds):
     seconds = max(0, int(seconds))
     return "%02d:%02d:%02d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
@@ -69,6 +79,40 @@ def list_frames(frames_dir):
         if m:
             found.append((int(m.group(1)), Path(frames_dir) / name))
     return sorted(found)
+
+
+_photo_cache = {}
+
+
+def session_dir(path):
+    """Normalise a user-picked folder (session or its Frames folder) to the session folder."""
+    if not path:
+        return None
+    folder = Path(bpy.path.abspath(path)).expanduser()
+    return folder.parent if folder.name == FRAMES_FOLDER_NAME else folder
+
+
+def count_photos(folder):
+    """Number of captured photos in a session folder; cached on the folder's mtime (cheap in draw())."""
+    frames_dir = Path(folder) / FRAMES_FOLDER_NAME
+    try:
+        mtime = frames_dir.stat().st_mtime_ns
+    except OSError:
+        return 0
+    hit = _photo_cache.get(frames_dir)
+    if hit is None or hit[0] != mtime:
+        hit = _photo_cache[frames_dir] = (mtime, len(list_frames(frames_dir)))
+    return hit[1]
+
+
+def list_sessions(project_dir):
+    """Session folders in a project folder, newest first."""
+    try:
+        names = os.listdir(project_dir)
+    except OSError:
+        return []
+    found = [(int(m.group(1)), n) for n in names if (m := _SESSION_RE.match(n))]
+    return [Path(project_dir) / n for _num, n in sorted(found, reverse=True)]
 
 
 def check_writable(folder):

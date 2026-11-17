@@ -16,7 +16,6 @@ from common import addon, addon_key, check, diff, finish, pixels, render_state  
 
 OUT = Path(sys.argv[sys.argv.index("--") + 1])
 REPORT = sys.argv[sys.argv.index("--") + 2]
-SHOTS = Path(__file__).resolve().parent.parent / "docs" / "images"
 
 
 def view3d():
@@ -35,6 +34,12 @@ def op(fn, **kw):
 def view_matrix():
     rv3d = view3d()[3].region_3d
     return [round(v, 5) for row in rv3d.view_matrix for v in row], rv3d.view_perspective
+
+
+def shortcut():
+    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("Screen")
+    return [k for k in (km.keymap_items if km else []) if k.idname == "blender_timelapse.capture_now"
+            and k.type == "F12" and k.ctrl and k.shift and not k.alt]
 
 
 def wait(seconds):
@@ -67,9 +72,12 @@ def scenario():
     bpy.context.view_layer.objects.active = scene.objects["Cube"]
     before = render_state(scene)
 
+    check("Capture Now shortcut Ctrl+Shift+F12 registered", bool(shortcut()))
+
     # -- test capture + preview
     r = op(bpy.ops.blender_timelapse.test_capture)
     check("camera test capture operator", r == {"FINISHED"})
+    check("test capture can run again (preview reload)", op(bpy.ops.blender_timelapse.test_capture) == {"FINISHED"})
     yield from wait(1.0)
     check("camera preview thumbnail available", bt.previews.icon_id() != 0)
 
@@ -99,10 +107,6 @@ def scenario():
     times = [p.stat().st_mtime for _i, p in a_frames]
     gaps = [b - a for a, b in zip(times, times[1:])]
     check("never captures faster than interval (1 s)", min(gaps) >= 0.95, ["%.2f" % g for g in gaps])
-
-    SHOTS.mkdir(parents=True, exist_ok=True)
-    with bpy.context.temp_override(window=win):
-        bpy.ops.screen.screenshot(filepath=str(SHOTS / "panel_recording.png"))
 
     # -- phase B: edit geometry in Edit Mode while recording
     n0 = len(frames(s))
@@ -134,7 +138,10 @@ def scenario():
         yield 0.4
     check("undo went past camera selection", bpy.context.scene.blender_timelapse.camera is None)
     n_u2 = len(frames(s))
-    yield from wait(1.3)
+    for _ in range(50):  # the first capture after undo rebuilds the depsgraph and can be slow
+        if len(frames(s)) > n_u2:
+            break
+        yield 0.1
     check("undo past camera choice keeps recording from the same camera", len(frames(s)) > n_u2 and not s.last_error,
           s.last_error)
     op(bpy.ops.ed.redo)
@@ -209,8 +216,6 @@ def scenario():
         yield 0.1
     check("16 video generated while UI stays live", bt.video.job.state == "DONE"
           and (s.folder / "timelapse.mp4").is_file(), bt.video.job.message)
-    with bpy.context.temp_override(window=win):
-        bpy.ops.screen.screenshot(filepath=str(SHOTS / "panel_stopped.png"))
 
     # -- repeated session, then disable add-on mid-recording
     check("20 second session starts", op(bpy.ops.blender_timelapse.start) == {"FINISHED"})
@@ -220,6 +225,7 @@ def scenario():
     bpy.ops.preferences.addon_disable(module=KEY)
     n6 = len(bt.utils.list_frames(s2.folder / "Frames"))
     yield from wait(2.5)
+    check("shortcut removed when add-on disabled", not shortcut())
     check("17 disabling mid-recording stops captures", len(bt.utils.list_frames(s2.folder / "Frames")) == n6
           and n6 >= 1, n6)
     meta = json.loads((s2.folder / "session_info.json").read_text())

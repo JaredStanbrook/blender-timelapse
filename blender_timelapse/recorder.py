@@ -8,6 +8,7 @@ thread; no background threads ever touch Blender data.
 """
 
 import atexit
+import math
 import time
 import traceback
 from datetime import datetime
@@ -78,7 +79,10 @@ class Session:
         return self.active_seconds + extra
 
     def countdown(self):
-        return max(0.0, self.next_capture_at - _now()) if self.state == RECORDING else None
+        """Seconds to the next automatic capture; None when paused or in manual mode."""
+        if self.state != RECORDING or math.isinf(self.next_capture_at):
+            return None
+        return max(0.0, self.next_capture_at - _now())
 
     def metadata(self):
         return {
@@ -144,6 +148,7 @@ def start(scene):
     folder = create_session_dir(output_root(settings), project_name(settings))
     _session = Session(scene, settings, folder)
     _session.save_metadata()
+    settings.export_folder = str(folder)  # Export follows the newest session
     _ensure_timer()
     return _session
 
@@ -164,7 +169,8 @@ def resume():
         s.resumed_at = _now()
         s.failures = 0
         scene = find_scene(s.scene_uid)
-        s.next_capture_at = _now() + (_settings(scene).interval if scene else MIN_IDLE)
+        interval = _settings(scene).interval if scene else MIN_IDLE
+        s.next_capture_at = math.inf if interval is None else _now() + interval
         _ensure_timer()
 
 
@@ -241,6 +247,11 @@ def _tick():
         if scene is None:
             stop("scene removed", final_capture=False)
             return None
+        interval = _settings(scene).interval
+        if interval is None:  # manual mode: only Capture Now adds photos
+            s.next_capture_at = math.inf
+        elif math.isinf(s.next_capture_at):  # switched from manual to automatic mid-session
+            s.next_capture_at = _now() + interval
         if s.state == RECORDING and _now() >= s.next_capture_at:
             if _should_defer(s, scene):
                 s.next_capture_at = _now() + TICK
@@ -251,7 +262,7 @@ def _tick():
         traceback.print_exc()
         s.last_error = "Unexpected error: %s" % ex
         pause()
-    if s.state == RECORDING:  # wake exactly when the next frame is due
+    if s.state == RECORDING and not math.isinf(s.next_capture_at):  # wake exactly when the next frame is due
         return min(TICK, max(0.01, s.next_capture_at - _now()))
     return TICK
 
@@ -300,10 +311,13 @@ def _capture(s, scene, manual=False):
         finished = _now()
         s.last_duration = finished - started
         interval = _settings(scene).interval
-        s.slow = s.last_duration > interval
-        # Never start-to-start faster than the interval, and always leave the user breathing room.
-        earliest = max(started + interval, finished + MIN_IDLE)
-        s.next_capture_at = max(s.next_capture_at, earliest) if manual else earliest
+        if interval is None:
+            s.slow, s.next_capture_at = False, math.inf
+        else:
+            s.slow = s.last_duration > interval
+            # Never start-to-start faster than the interval, and always leave the user breathing room.
+            earliest = max(started + interval, finished + MIN_IDLE)
+            s.next_capture_at = max(s.next_capture_at, earliest) if manual else earliest
         if s.failures >= MAX_FAILURES and s.state == RECORDING:
             s.last_error += " (recording paused)"
             pause()
